@@ -84,6 +84,28 @@ async function ensureProviderSettingsSchema(connection: mysql.Connection) {
   );
 }
 
+async function ensureOcrSettingsSchema(connection: mysql.Connection) {
+  if (!(await tableExists(connection, "ocr_settings"))) {
+    console.log("[SchemaRepair] ocr_settings table does not exist — creating it");
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS \`ocr_settings\` (
+        \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+        \`provider\` VARCHAR(64) NOT NULL DEFAULT 'tesseract',
+        \`enabled\` BOOLEAN NOT NULL DEFAULT TRUE,
+        \`language\` VARCHAR(32) NOT NULL DEFAULT 'ell+eng',
+        \`createdAt\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        \`updatedAt\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX \`ocr_settings_provider_idx\` (\`provider\`)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    await connection.query(`
+      INSERT INTO \`ocr_settings\` (\`id\`, \`provider\`, \`enabled\`, \`language\`)
+      VALUES (1, 'tesseract', TRUE, 'ell+eng')
+    `);
+    console.log("[SchemaRepair] ocr_settings table created with default row");
+  }
+}
+
 async function ensureInheritanceReviewSchema(connection: mysql.Connection) {
   if (await tableExists(connection, "review_approval_thresholds")) {
     const caseTypeKey = await getColumn(connection, "review_approval_thresholds", "caseTypeKey");
@@ -131,6 +153,7 @@ export async function ensureCurrentDatabaseSchema() {
       const connection = await mysql.createConnection(ENV.databaseUrl);
       try {
         await ensureProviderSettingsSchema(connection);
+        await ensureOcrSettingsSchema(connection);
         await ensureInheritanceReviewSchema(connection);
         console.log("[SchemaRepair] Schema repair complete");
       } catch (err) {

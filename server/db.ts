@@ -37,6 +37,7 @@ import {
   InsertJudgeStyleJudgment,
   InsertJudgeStyleProfile,
   InsertKnowledgeDocument,
+  InsertOcrSetting,
   InsertParagraphAnnotation,
   InsertProcessingJob,
   InsertReviewApprovalThreshold,
@@ -44,6 +45,7 @@ import {
   judgeStyleJudgments,
   judgeStyleProfiles,
   knowledgeDocuments,
+  ocrSettings,
   paragraphAnnotations,
   processingJobs,
   reviewApprovalThresholds,
@@ -414,6 +416,24 @@ export async function setActiveAiProviderSetting(id: number, updatedBy: number) 
       .where(eq(aiProviderSettings.id, id));
   });
   return getAiProviderSettingById(id);
+}
+
+export async function getOcrSettings() {
+  const db = await ensureDb();
+  const result = await db.select().from(ocrSettings).limit(1);
+  return result[0] ?? null;
+}
+
+export async function updateOcrSettings(updates: Partial<InsertOcrSetting>) {
+  const db = await ensureDb();
+  const existing = await getOcrSettings();
+  if (existing) {
+    await db.update(ocrSettings).set(updates).where(eq(ocrSettings.id, existing.id));
+    return getOcrSettings();
+  }
+  // Fallback: create default row if somehow missing
+  const id = await insertAndGetId(db.insert(ocrSettings).values({ provider: "tesseract", enabled: true, language: "ell+eng", ...updates }).$returningId());
+  return db.select().from(ocrSettings).where(eq(ocrSettings.id, id)).limit(1).then(r => r[0]);
 }
 
 export async function findKnowledgeDocumentDuplicate(fileHash: string) {

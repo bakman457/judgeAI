@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import mammoth from "mammoth";
 import { PDFParse } from "pdf-parse";
+import { OcrService, TesseractOcrProvider } from "./ocr";
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { TRPCError } from "@trpc/server";
@@ -26,6 +27,7 @@ import {
   getKnowledgeDocumentById,
   getUserById,
   getLatestCaseReviewSnapshotForDraft,
+  getOcrSettings,
   inferReviewCaseTypeKey,
   listAiProviderSettings,
   listCaseActivity,
@@ -42,6 +44,7 @@ import {
   updateDraftSection,
   updateJudgeStyleProfile,
   updateKnowledgeDocument,
+  updateOcrSettings,
   updateProcessingJob,
   upsertReviewApprovalThreshold,
 } from "./db";
@@ -244,6 +247,12 @@ const SUPPORTED_UPLOAD_TYPES = new Set([
   "text/markdown",
   "text/html",
   "application/json",
+  "image/jpeg",
+  "image/png",
+  "image/tiff",
+  "image/webp",
+  "image/bmp",
+  "image/gif",
 ]);
 
 const MIME_TYPE_BY_EXTENSION: Record<string, string> = {
@@ -255,7 +264,24 @@ const MIME_TYPE_BY_EXTENSION: Record<string, string> = {
   html: "text/html",
   htm: "text/html",
   json: "application/json",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  tiff: "image/tiff",
+  tif: "image/tiff",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  gif: "image/gif",
 };
+
+/** Singleton OCR service instance — lazily initialized on first use */
+let ocrService: OcrService | null = null;
+function getOcrService(): OcrService {
+  if (!ocrService) {
+    ocrService = new OcrService(new TesseractOcrProvider("ell+eng"));
+  }
+  return ocrService;
+}
 
 const LOCAL_DATA_DIR = process.env.JUDGE_AI_DATA_DIR ?? process.cwd();
 const ENCRYPTION_SALT_FILE = path.join(LOCAL_DATA_DIR, ".encryption-salt");
@@ -753,10 +779,19 @@ export function computeHash(buffer: Buffer) {
 }
 
 async function extractSearchableText(fileName: string, mimeType: string, buffer: Buffer) {
+  const ocrSettingsRow = await getOcrSettings();
+  const ocrEnabled = ocrSettingsRow?.enabled ?? true;
+
+  // Images: OCR directly (if enabled)
+  if (mimeType.startsWith("image/")) {
+    const ocrText = await getOcrService().extractText(buffer, mimeType, !ocrEnabled);
+    return normalizeText(ocrText, 80_000);
+  }
+
   if (mimeType === "application/pdf") {
-    const parser = new PDFParse({ data: buffer });
-    const parsed = await parser.getText();
-    return normalizeText(parsed.text, 80_000);
+    // Try embedded text first; if the PDF is scanned and OCR is enabled, fall back to OCR
+    const ocrText = await getOcrService().extractText(buffer, mimeType, !ocrEnabled);
+    return normalizeText(ocrText, 80_000);
   }
 
   if (
@@ -1027,17 +1062,18 @@ function repairTruncatedJson(raw: string): string {
 function extractJsonObject(content: string) {
   const trimmed = content.trim();
 
-  // Try to extract JSON from markdown code block first
-  const codeBlockMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch) {
-    const inside = codeBlockMatch[1].trim();
-    if (inside.startsWith("{")) return inside;
+  // Try to extract JSON from any markdown code block (use last match that looks like JSON)
+  const codeBlockMatches = Array.from(trimmed.matchAll(/```(?:json)?\s*([\s\S]*?)\s*```/g));
+  for (let i = codeBlockMatches.length - 1; i >= 0; i--) {
+    const inside = codeBlockMatches[i][1].trim();
+    if (inside.startsWith("{") || inside.startsWith("[")) return inside;
   }
 
   if (trimmed.startsWith("{")) return trimmed;
 
   const firstBrace = trimmed.indexOf("{");
   if (firstBrace === -1) {
+    console.error("[LLM] extractJsonObject: no braces found in content. Preview:", trimmed.slice(0, 500));
     throw new Error("Provider did not return a JSON object");
   }
 
@@ -1047,16 +1083,17 @@ function extractJsonObject(content: string) {
   for (let i = firstBrace; i < trimmed.length; i++) {
     const char = trimmed[i];
     if (inString) {
-      if (escape) escape = false;
-      else if (char === "\\") escape = true;
-      else if (char === '"') inString = false;
+      if (escape) { escape = false; continue; }
+      if (char === "\\") { escape = true; continue; }
+      if (char === '"') { inString = false; continue; }
       continue;
     }
     if (char === '"') { inString = true; continue; }
-    if (char === "{") depth++;
-    else if (char === "}") {
+    if (char === "{") { depth++; continue; }
+    if (char === "}") {
       depth--;
       if (depth === 0) return trimmed.slice(firstBrace, i + 1);
+      continue;
     }
   }
 
@@ -1067,7 +1104,10 @@ function extractJsonObject(content: string) {
     return trimmed.slice(firstBrace);
   }
 
-  throw new Error("Provider did not return a valid JSON object (unmatched braces)");
+  // Defensive fallback: if we somehow reached here, try returning from first brace anyway
+  // rather than hard-failing. repairTruncatedJson may still salvage it.
+  console.warn("[LLM] extractJsonObject: depth===0 but no complete object found; returning partial. Preview:", trimmed.slice(firstBrace, firstBrace + 500));
+  return trimmed.slice(firstBrace);
 }
 
 /**
@@ -1089,6 +1129,7 @@ function parseProviderJson<T>(content: string): T {
       console.warn("[LLM] parseProviderJson: initial parse failed, succeeded after repair");
       return JSON.parse(repaired) as T;
     } catch {
+      console.error("[LLM] parseProviderJson: failed to parse after repair. Content preview:", content.slice(0, 800));
       // Re-throw the original error so isRetryableGenerationError can see it
       throw firstError;
     }
@@ -1325,6 +1366,11 @@ export async function invokeConfiguredModel(params: {
 
   if (!usesPlainJsonInstruction) {
     payload.response_format = outputSchema;
+  } else if (provider.providerType === "deepseek" || provider.providerType === "kimi") {
+    // These providers support OpenAI-compatible json_object mode even though they
+    // don't support the strict JSON schema response_format. Using json_object
+    // significantly improves JSON adherence compared to plain text instructions.
+    payload.response_format = { type: "json_object" };
   }
 
   const headers: Record<string, string> = {
@@ -1494,7 +1540,7 @@ export function validateAndNormalizeDraftOutput(output: DraftModelOutput) {
 export function buildCasePrompt(
   workspace: NonNullable<Awaited<ReturnType<typeof getCaseWorkspace>>>,
   knowledge: Awaited<ReturnType<typeof listKnowledgeDocuments>>,
-  options: { compact?: boolean; styleProfile?: Record<string, unknown> | null } = {},
+  options: { compact?: boolean; styleProfile?: Record<string, unknown> | null; reviewContext?: string | null } = {},
 ) {
   const caseDocumentLimit = options.compact ? 5 : Number.POSITIVE_INFINITY;
   const caseDocumentTextLimit = options.compact ? 900 : 3_000;
@@ -1591,6 +1637,8 @@ export function buildCasePrompt(
   const userPrompt = [
     "Draft a judicial decision using the provided case file and permanent knowledge base.",
     options.compact ? "Use this compact context because the provider rejected the larger request. Keep the draft concise but complete." : null,
+    options.reviewContext ? "A previous legal consistency review identified the following issues that must be addressed in this new draft. Ensure every listed issue is properly resolved in the generated decision." : null,
+    options.reviewContext ? options.reviewContext : null,
     "Return a JSON object matching the requested schema.",
     "Case summary:",
     caseSummary,
@@ -1600,7 +1648,7 @@ export function buildCasePrompt(
     caseDocuments,
     "Knowledge base materials:",
     knowledgeDocuments,
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 
   return { systemPrompt, userPrompt };
 }
@@ -2093,6 +2141,33 @@ export async function activateProviderSettings(providerId: number, userId: numbe
   return setActiveAiProviderSetting(providerId, userId);
 }
 
+export async function getOcrSettingsForAdmin() {
+  return getOcrSettings();
+}
+
+export async function saveOcrSettingsForAdmin(input: { enabled?: boolean; provider?: string; language?: string }) {
+  return updateOcrSettings(input);
+}
+
+export async function testOcrProvider(base64Image: string) {
+  const settings = await getOcrSettings();
+  const providerName = settings?.provider ?? "tesseract";
+  const language = settings?.language ?? "ell+eng";
+
+  let provider: import("./ocr").OcrProvider;
+  if (providerName === "tesseract") {
+    const { TesseractOcrProvider } = await import("./ocr");
+    provider = new TesseractOcrProvider(language);
+  } else {
+    throw new TRPCError({ code: "NOT_IMPLEMENTED", message: `OCR provider "${providerName}" is not implemented yet` });
+  }
+
+  const buffer = Buffer.from(base64Image, "base64");
+  const text = await provider.extractText(buffer);
+  await provider.destroy?.();
+  return { text, provider: providerName, language };
+}
+
 export async function ingestKnowledgeDocument(input: UploadKnowledgeDocumentInput) {
   // Normalize once for validation and processing; store the raw client-supplied
   // MIME type in the DB row so the original upload metadata is preserved.
@@ -2575,6 +2650,7 @@ export async function generateStructuredDraft(input: {
   userRole: "judge" | "admin";
   providerId?: number | null;
   profileId?: number | null;
+  reviewContext?: string | null;
 }) {
   const workspace = await getCaseWorkspace(input.caseId, { id: input.userId, role: input.userRole });
   if (!workspace) {
@@ -2623,7 +2699,7 @@ export async function generateStructuredDraft(input: {
       await updateProcessingJob(job.id, {
         resultJson: { stage: "analyzing", message: "Analyzing case documents and legal principles..." },
       });
-      let prompt = buildCasePrompt(workspace, knowledge, { styleProfile });
+      let prompt = buildCasePrompt(workspace, knowledge, { styleProfile, reviewContext: input.reviewContext });
       let providerResult;
       await updateProcessingJob(job.id, {
         resultJson: { stage: "generating", message: "Generating structured decision draft..." },
@@ -2642,7 +2718,7 @@ export async function generateStructuredDraft(input: {
         await updateProcessingJob(job.id, {
           resultJson: { stage: "retrying", message: "Retrying with compact context due to provider output issue..." },
         });
-        prompt = buildCasePrompt(workspace, knowledge, { compact: true, styleProfile });
+        prompt = buildCasePrompt(workspace, knowledge, { compact: true, styleProfile, reviewContext: input.reviewContext });
         providerResult = await invokeConfiguredModel({
           providerId: input.providerId,
           systemPrompt: prompt.systemPrompt,

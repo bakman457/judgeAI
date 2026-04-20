@@ -80,6 +80,7 @@
     "next-themes": "^0.4.6",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
+    "pdf-to-png-converter": "^3.18.0",
     "react": "^19.2.1",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.2.1",
@@ -91,6 +92,7 @@
     "superjson": "^1.13.3",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^7.0.0",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "zod": "^4.1.12"

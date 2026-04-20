@@ -44,6 +44,9 @@ import {
   saveReviewApprovalThreshold,
   testProviderConnectivity,
   reviewCaseAgainstEvidence,
+  getOcrSettingsForAdmin,
+  saveOcrSettingsForAdmin,
+  testOcrProvider,
   updateDraftParagraphWithAudit,
   updateDraftSectionReview,
 } from "./judgeAiService";
@@ -162,6 +165,32 @@ export const judgeAiRouter = router({
           filesRemoved = await purgeUploadsDirectory();
         }
         return { ...result, filesRemoved };
+      }),
+
+    getOcrSettings: protectedProcedure.query(async () => {
+      return getOcrSettingsForAdmin();
+    }),
+
+    saveOcrSettings: protectedProcedure
+      .input(
+        z.object({
+          enabled: z.boolean().optional(),
+          provider: z.string().min(1).max(64).optional(),
+          language: z.string().min(1).max(32).optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        return saveOcrSettingsForAdmin(input);
+      }),
+
+    testOcr: protectedProcedure
+      .input(
+        z.object({
+          base64Image: z.string().min(1),
+        }),
+      )
+      .mutation(async ({ input }) => {
+        return testOcrProvider(input.base64Image);
       }),
   }),
 
@@ -528,6 +557,7 @@ export const judgeAiRouter = router({
           caseId: z.coerce.number().int().positive(),
           providerId: z.coerce.number().int().positive().nullable().optional(),
           profileId: z.coerce.number().int().positive().nullable().optional(),
+          reviewContext: z.string().optional().nullable(),
         }),
       )
       .mutation(async ({ ctx, input }) => {
@@ -538,6 +568,7 @@ export const judgeAiRouter = router({
           userRole: ctx.user.role,
           providerId: input.providerId ?? null,
           profileId: input.profileId ?? null,
+          reviewContext: input.reviewContext ?? null,
         });
       }),
     jobStatus: protectedProcedure

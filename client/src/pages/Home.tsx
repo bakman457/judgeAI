@@ -453,6 +453,15 @@ const localizedInterface = {
       notReadyForSignature: "Not ready for signature",
       caseCheckNoItems: "No specific items were identified in this section.",
       caseCheckEmpty: "No review has been generated yet. Run the checker to inspect whether the proposed judgment is supported by law and evidence.",
+      reviewActionRequired: "Action required: review the findings below and update the draft before approval.",
+      goToDraftFixIssues: "Go to Draft & Fix Issues",
+      reRunReview: "Re-run Consistency Review",
+      viewDraft: "View Draft",
+      newGeneration: "New Generation",
+      exportReviewDocx: "Export DOCX",
+      exportReviewPdf: "Export PDF",
+      markFindingReviewed: "Mark Reviewed",
+      findingStatusReview: "Review",
       assessmentLabels: {
         supported: "Supported",
         partially_supported: "Partially supported",
@@ -525,6 +534,15 @@ const localizedInterface = {
       configuredProvidersTitle: "Configured providers",
       configuredProvidersDescription: "One provider can be marked active for case drafting operations.",
       active: "active",
+      ocrTitle: "OCR Configuration",
+      ocrDescription: "Optical Character Recognition for scanned documents and images. Tesseract runs locally — no cloud dependency.",
+      ocrEnabled: "Enable OCR",
+      ocrProvider: "OCR provider",
+      ocrLanguage: "Recognition language",
+      ocrTest: "Test OCR",
+      ocrTestDescription: "Upload an image or scanned page to test recognition quality.",
+      ocrTestResult: "Recognized text",
+      ocrTestNoResult: "No text recognized.",
       makeActive: "Make active",
       editProvider: "Edit",
       noProviders: "No AI providers configured yet.",
@@ -707,6 +725,15 @@ const localizedInterface = {
       notReadyForSignature: "Δεν είναι έτοιμο για υπογραφή",
       caseCheckNoItems: "Δεν εντοπίστηκαν ειδικά στοιχεία σε αυτή την ενότητα.",
       caseCheckEmpty: "Δεν έχει παραχθεί ακόμη έλεγχος. Εκτελέστε τον ελεγκτή για να δείτε αν η προτεινόμενη απόφαση στηρίζεται στο δίκαιο και στις αποδείξεις.",
+      reviewActionRequired: "Απαιτείται ενέργεια: ελέγξτε τα ευρήματα παρακάτω και ενημερώστε το σχέδιο πριν την έγκριση.",
+      goToDraftFixIssues: "Μετάβαση στο Σχέδιο & Διόρθωση",
+      reRunReview: "Επανάληψη Ελέγχου Συνέπειας",
+      viewDraft: "Προβολή σχεδίου",
+      newGeneration: "Νέα παραγωγή",
+      exportReviewDocx: "Εξαγωγή DOCX",
+      exportReviewPdf: "Εξαγωγή PDF",
+      markFindingReviewed: "Σήμανση ως ελεγμένο",
+      findingStatusReview: "Έλεγχος",
       assessmentLabels: {
         supported: "Στηρίζεται",
         partially_supported: "Στηρίζεται εν μέρει",
@@ -779,6 +806,15 @@ const localizedInterface = {
       configuredProvidersTitle: "Ρυθμισμένοι πάροχοι",
       configuredProvidersDescription: "Ένας πάροχος μπορεί να οριστεί ενεργός για λειτουργίες σύνταξης.",
       active: "ενεργός",
+      ocrTitle: "Ρύθμιση OCR",
+      ocrDescription: "Οπτική Αναγνώριση Χαρακτήρων για σαρωμένα έγγραφα και εικόνες. Το Tesseract εκτελείται τοπικά — χωρίς εξάρτηση από το cloud.",
+      ocrEnabled: "Ενεργοποίηση OCR",
+      ocrProvider: "Πάροχος OCR",
+      ocrLanguage: "Γλώσσα αναγνώρισης",
+      ocrTest: "Δοκιμή OCR",
+      ocrTestDescription: "Μεταφορτώστε μια εικόνα ή σαρωμένη σελίδα για να δοκιμάσετε την ποιότητα αναγνώρισης.",
+      ocrTestResult: "Αναγνωρισμένο κείμενο",
+      ocrTestNoResult: "Δεν αναγνωρίστηκε κείμενο.",
       makeActive: "Ορισμός ως ενεργού",
       editProvider: "Επεξεργασία",
       noProviders: "Δεν έχουν ρυθμιστεί ακόμη πάροχοι AI.",
@@ -864,6 +900,8 @@ const runtimeCopy = {
       signedPdfExported: "Signed PDF review report exported",
       providerSaved: "AI provider settings saved",
       activeProviderUpdated: "Active AI provider updated",
+      settingsSaved: "Settings saved",
+      ocrTestSuccess: "OCR test completed",
       userUpdated: "User updated",
       chooseKnowledgeFile: "Choose a knowledge-base file to upload",
       chooseCaseFile: "Choose a case document to upload",
@@ -1038,6 +1076,8 @@ const runtimeCopy = {
       signedPdfExported: "Η υπογεγραμμένη έκθεση PDF εξήχθη",
       providerSaved: "Οι ρυθμίσεις παρόχου AI αποθηκεύτηκαν",
       activeProviderUpdated: "Ο ενεργός πάροχος AI ενημερώθηκε",
+      settingsSaved: "Οι ρυθμίσεις αποθηκεύτηκαν",
+      ocrTestSuccess: "Η δοκιμή OCR ολοκληρώθηκε",
       userUpdated: "Ο χρήστης ενημερώθηκε",
       chooseKnowledgeFile: "Επιλέξτε αρχείο βάσης γνώσης για μεταφόρτωση",
       chooseCaseFile: "Επιλέξτε έγγραφο υπόθεσης για μεταφόρτωση",
@@ -1583,8 +1623,12 @@ export default function Home() {
   const [selectedReviewTemplate, setSelectedReviewTemplate] = useState<"inheritance">("inheritance");
   const [reviewTemplateFocus, setReviewTemplateFocus] = useState("");
   const [caseReviewResult, setCaseReviewResult] = useState<CaseReviewResult | null>(null);
+  const [reviewedFindingIndices, setReviewedFindingIndices] = useState<Set<number>>(new Set());
+  const [activeTab, setActiveTab] = useState("documents");
   const [providerForm, setProviderForm] = useState(defaultProviderForm);
   const [providerTestResult, setProviderTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [ocrTestFile, setOcrTestFile] = useState<File | null>(null);
+  const [ocrTestResult, setOcrTestResult] = useState("");
   const [paragraphDrafts, setParagraphDrafts] = useState<Record<number, { paragraphText: string; rationale: string; confidenceScore: string; reviewStatus: "draft" | "reviewed" | "approved" }>>({});
   const [draftProgress, setDraftProgress] = useState(0);
   const [draftProgressElapsed, setDraftProgressElapsed] = useState(0);
@@ -1960,6 +2004,27 @@ export default function Home() {
     onError: error => toast.error(error.message),
   });
 
+  const ocrSettingsQuery = trpc.judgeAi.admin.getOcrSettings.useQuery(undefined, { enabled: Boolean(isAuthenticated) });
+
+  const saveOcrSettingsMutation = trpc.judgeAi.admin.saveOcrSettings.useMutation({
+    onSuccess: async () => {
+      toast.success(rt.toast.settingsSaved);
+      await utils.judgeAi.admin.getOcrSettings.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const testOcrMutation = trpc.judgeAi.admin.testOcr.useMutation({
+    onSuccess: result => {
+      setOcrTestResult(result.text ?? "");
+      toast.success(rt.toast.ocrTestSuccess);
+    },
+    onError: error => {
+      setOcrTestResult("");
+      toast.error(error.message);
+    },
+  });
+
   const updateUserMutation = trpc.judgeAi.admin.updateUser.useMutation({
     onSuccess: async () => {
       toast.success(rt.toast.userUpdated);
@@ -2021,6 +2086,10 @@ export default function Home() {
       return toSavedReviewResult(latestSavedReview);
     });
   }, [workspaceQuery.data?.reviewHistory]);
+
+  useEffect(() => {
+    setReviewedFindingIndices(new Set());
+  }, [caseReviewResult?.reviewSnapshotId]);
 
   const activeDraft = useMemo(() => workspaceQuery.data?.latestDraft ?? null, [workspaceQuery.data]);
   const latestDraftText = useMemo(
@@ -3078,7 +3147,7 @@ export default function Home() {
           ))}
         </div>
 
-        <Tabs defaultValue="documents" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 gap-1 rounded-xl border border-stone-200 bg-white p-1 sm:w-auto sm:inline-grid sm:grid-cols-4 dark:border-white/10 dark:bg-[#151923]">
             <TabsTrigger value="documents" className="rounded-lg text-sm">{tabLabels.documents}</TabsTrigger>
             <TabsTrigger value="draft" className="rounded-lg text-sm">{tabLabels.draft}</TabsTrigger>
@@ -3488,7 +3557,7 @@ export default function Home() {
           <ShellCard title={ui.workspace.caseCheckTitle} description={ui.workspace.caseCheckDescription}>
           <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
             <form className="space-y-4" onSubmit={handleCaseReview}>
-              {isReviewing && (
+              {reviewJudgmentMutation.isPending && (
                 <div className="sticky top-14 z-20 -mx-4 mb-2 border-b border-stone-200/80 bg-white/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6 xl:-mx-8 xl:px-8 dark:border-white/10 dark:bg-[#151923]/95">
                   <div className="flex items-center gap-3">
                     <Loader2 className="h-4 w-4 shrink-0 animate-spin text-stone-700 dark:text-stone-200" />
@@ -3565,6 +3634,57 @@ export default function Home() {
                       <StatusPill>{caseReviewResult.preSignatureReview?.readyForSignature ? ui.workspace.readyForSignature : ui.workspace.notReadyForSignature}</StatusPill>
                     </div>
                     <p className="mt-4 text-sm leading-7 text-stone-700 dark:text-stone-200">{caseReviewResult.summary}</p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                        onClick={() => setActiveTab("draft")}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        {ui.workspace.viewDraft}
+                      </Button>
+                      <Button
+                        className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                        onClick={() => {
+                          const unreviewedFindings = (caseReviewResult.findings ?? []).filter((_: any, i: number) => !reviewedFindingIndices.has(i));
+                          const reviewContext = unreviewedFindings.length
+                            ? unreviewedFindings.map((f: any) => `[${(f.severity ?? "").toUpperCase()}] ${f.category ?? ""}: ${f.issue ?? ""}${f.explanation ? ` — ${f.explanation}` : ""}${f.recommendedAction ? ` (Action: ${f.recommendedAction})` : ""}`).join("\n")
+                            : "Regenerate the draft incorporating all previous legal consistency review feedback.";
+                          generateDraftMutation.mutate({ caseId, reviewContext });
+                        }}
+                        disabled={isGeneratingDraft}
+                      >
+                        {isGeneratingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                        {ui.workspace.newGeneration}
+                      </Button>
+                      {(caseReviewResult?.reviewSnapshotId ?? reviewHistory[0]?.id) ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            className="rounded-xl border-stone-300/80 bg-white/92 text-stone-700 shadow-[0_10px_26px_-18px_rgba(31,41,55,0.2)] hover:bg-stone-100/95 hover:text-stone-950 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(26,31,43,0.98)_0%,rgba(17,20,29,0.99)_100%)] dark:text-stone-100 dark:hover:bg-[linear-gradient(180deg,rgba(36,42,57,0.98)_0%,rgba(24,28,38,0.99)_100%)]"
+                            onClick={() => exportReviewReportMutation.mutate({ caseId, reviewSnapshotId: caseReviewResult?.reviewSnapshotId ?? reviewHistory[0]?.id ?? 0, format: "docx" })}
+                            disabled={exportReviewReportMutation.isPending}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            {ui.workspace.exportReviewDocx}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="rounded-xl border-stone-300/80 bg-white/92 text-stone-700 shadow-[0_10px_26px_-18px_rgba(31,41,55,0.2)] hover:bg-stone-100/95 hover:text-stone-950 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(26,31,43,0.98)_0%,rgba(17,20,29,0.99)_100%)] dark:text-stone-100 dark:hover:bg-[linear-gradient(180deg,rgba(36,42,57,0.98)_0%,rgba(24,28,38,0.99)_100%)]"
+                            onClick={() => exportReviewReportMutation.mutate({ caseId, reviewSnapshotId: caseReviewResult?.reviewSnapshotId ?? reviewHistory[0]?.id ?? 0, format: "pdf" })}
+                            disabled={exportReviewReportMutation.isPending}
+                          >
+                            <FileText className="mr-2 h-4 w-4" />
+                            {ui.workspace.exportReviewPdf}
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                    {(caseReviewResult.decisionQuality?.score ?? 100) < 70 || !caseReviewResult.preSignatureReview?.readyForSignature || (caseReviewResult.findings ?? []).length > 0 ? (
+                      <div className="mt-3 flex items-start gap-3 rounded-[1.25rem] border border-amber-200/80 bg-amber-50/90 p-4 dark:border-amber-900/60 dark:bg-amber-950/30">
+                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{ui.workspace.reviewActionRequired}</p>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
@@ -3603,17 +3723,45 @@ export default function Home() {
 
                   <ShellCard title={ui.workspace.caseCheckFindings} description={ui.workspace.caseCheckSummary}>
                     <div className="space-y-3">
-                      {(caseReviewResult.findings ?? []).length ? (caseReviewResult.findings ?? []).map((finding: any, index: number) => (
-                        <div key={`${finding.issue}-${index}`} className="rounded-[1.25rem] border border-stone-200/80 bg-stone-50/90 p-4 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)]">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <StatusPill>{translateToken(locale, finding.category)}</StatusPill>
-                            <StatusPill>{translateToken(locale, finding.severity)}</StatusPill>
+                      {(caseReviewResult.findings ?? []).length ? (caseReviewResult.findings ?? []).map((finding: any, index: number) => {
+                        const isReviewed = reviewedFindingIndices.has(index);
+                        return (
+                          <div key={`${finding.issue}-${index}`} className="rounded-[1.25rem] border border-stone-200/80 bg-stone-50/90 p-4 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)]">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <StatusPill>{translateToken(locale, finding.category)}</StatusPill>
+                              <StatusPill>{translateToken(locale, finding.severity)}</StatusPill>
+                              <div className="ml-auto flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${!isReviewed ? "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-200" : "border-stone-200 bg-transparent text-stone-500 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"}`}
+                                  onClick={() => setReviewedFindingIndices(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(index);
+                                    return next;
+                                  })}
+                                >
+                                  {ui.workspace.findingStatusReview}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${isReviewed ? "border-green-600 bg-green-600 text-white dark:border-green-600 dark:bg-green-600 dark:text-white" : "border-stone-200 bg-transparent text-stone-500 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"}`}
+                                  onClick={() => setReviewedFindingIndices(prev => {
+                                    const next = new Set(prev);
+                                    next.add(index);
+                                    return next;
+                                  })}
+                                >
+                                  {ui.workspace.markFindingReviewed}
+                                </button>
+                              </div>
+                            </div>
+                            <p className="mt-3 text-sm font-semibold text-stone-900 dark:text-stone-100">{finding.issue}</p>
+                            <p className="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-200">{finding.explanation}</p>
+                            {finding.recommendedAction ? <p className="mt-2 text-sm font-medium text-amber-700 dark:text-amber-300">{finding.recommendedAction}</p> : null}
+                            {(finding.supportingSources ?? []).length ? <p className="mt-2 text-xs uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{finding.supportingSources.join(" · ")}</p> : null}
                           </div>
-                          <p className="mt-3 text-sm font-semibold text-stone-900 dark:text-stone-100">{finding.issue}</p>
-                          <p className="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-200">{finding.explanation}</p>
-                          {(finding.supportingSources ?? []).length ? <p className="mt-2 text-xs uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{finding.supportingSources.join(" · ")}</p> : null}
-                        </div>
-                      )) : <p className="text-sm leading-6 text-stone-600 dark:text-stone-200">{ui.workspace.caseCheckNoItems}</p>}
+                        );
+                      }) : <p className="text-sm leading-6 text-stone-600 dark:text-stone-200">{ui.workspace.caseCheckNoItems}</p>}
                     </div>
                   </ShellCard>
 
@@ -4288,6 +4436,71 @@ export default function Home() {
               ) : (
                 <p className="rounded-[1.35rem] border border-dashed border-stone-300/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(244,239,230,0.86))] px-5 py-10 text-sm leading-7 text-stone-500 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)] dark:text-stone-300">{ui.admin.noProviders}</p>
               )}
+            </div>
+          </ShellCard>
+
+          <ShellCard title={ui.admin.ocrTitle} description={ui.admin.ocrDescription}>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="ocr-enabled"
+                  checked={ocrSettingsQuery.data?.enabled ?? true}
+                  onCheckedChange={checked => {
+                    saveOcrSettingsMutation.mutate({ enabled: checked });
+                  }}
+                  disabled={saveOcrSettingsMutation.isPending || ocrSettingsQuery.isLoading}
+                />
+                <div className="flex flex-col">
+                  <label htmlFor="ocr-enabled" className="cursor-pointer text-sm font-semibold text-stone-800 dark:text-stone-200">{ui.admin.ocrEnabled}</label>
+                  <span className="text-xs text-stone-500 dark:text-stone-400">{ocrSettingsQuery.data?.provider ?? "tesseract"} · {ocrSettingsQuery.data?.language ?? "ell+eng"}</span>
+                </div>
+              </div>
+
+              <div className="rounded-[1.25rem] border border-stone-200/80 bg-stone-50/90 p-4 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)]">
+                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{ui.admin.ocrTest}</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">{ui.admin.ocrTestDescription}</p>
+                <div className="mt-3">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/tiff,image/webp,image/bmp,image/gif"
+                    onChange={event => {
+                      const file = event.target.files?.[0] ?? null;
+                      setOcrTestFile(file);
+                      setOcrTestResult("");
+                    }}
+                    className="block w-full text-sm text-stone-700 file:mr-4 file:rounded-lg file:border-0 file:bg-stone-900 file:px-3.5 file:py-2.5 file:text-sm file:font-medium file:text-stone-50 dark:text-stone-200 dark:file:bg-stone-100 dark:file:text-stone-900"
+                  />
+                </div>
+                {ocrTestFile ? (
+                  <Button
+                    className="mt-3 rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                    onClick={async () => {
+                      if (!ocrTestFile) return;
+                      const base64 = await new Promise<string>((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const result = reader.result as string;
+                          const base64Content = result.split(",")[1] ?? "";
+                          resolve(base64Content);
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(ocrTestFile);
+                      });
+                      testOcrMutation.mutate({ base64Image: base64 });
+                    }}
+                    disabled={testOcrMutation.isPending}
+                  >
+                    {testOcrMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    {ui.admin.ocrTest}
+                  </Button>
+                ) : null}
+                {ocrTestResult ? (
+                  <div className="mt-3 rounded-[1.25rem] border border-stone-200/80 bg-white p-4 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)]">
+                    <p className="text-xs uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{ui.admin.ocrTestResult}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-stone-700 dark:text-stone-200">{ocrTestResult || ui.admin.ocrTestNoResult}</p>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </ShellCard>
         </TabsContent>

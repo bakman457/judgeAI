@@ -85,6 +85,21 @@ export const aiProviderSettings = mysqlTable(
   }),
 );
 
+export const ocrSettings = mysqlTable(
+  "ocr_settings",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    provider: varchar("provider", { length: 64 }).notNull().default("tesseract"),
+    enabled: boolean("enabled").default(true).notNull(),
+    language: varchar("language", { length: 32 }).notNull().default("ell+eng"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    providerIdx: index("ocr_settings_provider_idx").on(table.provider),
+  }),
+);
+
 export const knowledgeDocuments = mysqlTable(
   "knowledge_documents",
   {
@@ -486,6 +501,9 @@ export type InsertCaseDocument = typeof caseDocuments.$inferInsert;
 
 export type ProcessingJob = typeof processingJobs.$inferSelect;
 export type InsertProcessingJob = typeof processingJobs.$inferInsert;
+
+export type OcrSetting = typeof ocrSettings.$inferSelect;
+export type InsertOcrSetting = typeof ocrSettings.$inferInsert;
 
 export type Draft = typeof drafts.$inferSelect;
 export type InsertDraft = typeof drafts.$inferInsert;
