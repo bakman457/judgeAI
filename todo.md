@@ -1,0 +1,58 @@
+# Project TODO
+
+- [x] Confirm the product blueprint for the Judge AI platform against the current scaffold and target workflow.
+- [x] Design and implement the database schema for roles, judge profiles, AI provider settings, legal knowledge sources, knowledge documents, cases, parties, case documents, document processing jobs, drafts, draft sections, draft paragraphs, annotations, approvals, exports, and audit logs.
+- [x] Enforce role-based access for judge and admin users at both server procedure and frontend route/navigation levels.
+- [x] Build secure session-based authentication flows on top of the scaffolded auth system and add protected application routes.
+- [x] Build user and role management tools for admins.
+- [x] Implement the permanent legal knowledge base with upload, persistence, categorization, search, and retrieval across all cases.
+- [x] Implement case management with create, list, filter, detail, archive, and status tracking workflows.
+- [x] Implement per-case document upload with validation, duplicate detection during upload, processing status tracking, and audit events.
+- [x] Implement full-text search across the legal knowledge base and case documents.
+- [x] Implement configurable AI provider settings for endpoint, model, API key, and provider type without code changes.
+- [x] Implement AI-assisted generation of full structured decision drafts containing header, facts, issues, reasoning, and operative part.
+- [x] Implement inline draft editing with section and paragraph updates, paragraph rationale, confidence scores, and evidence/law annotations.
+- [x] Implement draft versioning, review and approval workflow, and status transitions for sections and decisions.
+- [x] Implement DOCX export for approved decisions.
+- [x] Implement per-case audit log and activity timeline covering uploads, AI runs, edits, approvals, exports, and status changes.
+- [x] Build an elegant, polished judicial dashboard and application UI with authoritative typography, refined spacing, and consistent layout patterns.
+- [x] Add automated tests for authorization, document duplicate detection, AI drafting flow, approval workflow, and export behavior.
+- [x] Validate the full application in the browser and fix any functional or UX issues before delivery.
+- [x] Prepare delivery notes explaining the architecture, configurable options, and how to operate the platform.
+- [x] Fix the remaining dashboard layout overlap and spacing issues across the main judicial workspace.
+- [x] Add a top-bar Greek and English language switcher for the application interface.
+- [x] Add user-selectable dark mode support and theme controls for the judicial environment.
+- [x] Improve the Judge AI colour palette and contrast hierarchy for better clarity and visual polish.
+- [x] Improve readability across the dashboard by refining typography, spacing, card density, and content hierarchy.
+- [x] Make the interface more user-friendly by improving action prominence, section grouping, and overall page usability.
+- [x] Fix the admin upload flow so valid documents uploaded as application/octet-stream are detected correctly and no longer fail type validation.
+- [x] Improve the professionalism of the dashboard details, including the small badges, metric chips, and visual micro-components.
+- [x] Refine the page design for better readability, clearer hierarchy, and more user-friendly judicial workflows.
+- [x] Add batch document import so users can upload multiple legal and case documents at once.
+- [x] Implement automatic document recognition and categorization so the system can infer document type without requiring manual classification one by one.
+- [x] Add a legal case checking workflow that compares a judgment against applicable laws and submitted evidence and highlights contradictions, weaknesses, and consistency issues.
+- [x] Add judge-facing structured feedback on decisions so the system can explain whether a judgment appears well-supported, incomplete, or potentially inconsistent.
+- [x] Propose and implement additional optional productivity features that make the application more helpful and efficient for judicial work.
+- [x] Create an in-app Help section that explains the main functions of Judge AI in clear language.
+- [x] Add practical usage examples and guided workflows in the Help section so users can understand how to use each major feature.
+- [x] Add complete user guidance content covering document upload, knowledge base use, AI draft generation, review workflow, exports, batch import, and case checking.
+- [x] Implement a side-by-side evidence-to-reasoning trace view for each paragraph of a draft.
+- [x] Create configurable review templates for civil, criminal, and administrative case types.
+- [x] Develop a submission intake dashboard with queue prioritization and deadline alerts.
+- [x] Improve dark mode contrast and accessibility so text, cards, badges, and panels remain clearly readable with no white-on-white or low-contrast combinations.
+- [x] Implement issue extraction and legal-question framing to identify the core questions the judgment must resolve.
+- [x] Add missing-law and missing-evidence gap alerts so incomplete reasoning can be flagged before approval.
+- [x] Implement automatic citation verification and applicable-law consistency checks.
+- [x] Add evidence credibility analysis and contradiction mapping across witness statements, exhibits, and draft reasoning.
+- [x] Implement precedent similarity and distinguishability analysis for judicial drafting support.
+- [x] Separate ratio decidendi from obiter dicta in the review workflow.
+- [x] Add jurisdiction and admissibility checks before final decision approval.
+- [x] Implement remedy and sanction proportionality analysis.
+- [x] Add decision quality scoring before approval.
+- [x] Implement a final pre-signature consistency review workflow.
+- [x] Add saved review history for each draft version so every judicial-quality review can be revisited and compared over time.
+- [x] Add judge-configurable approval thresholds by case type so approval readiness can follow different quality-score and blocker rules for civil, criminal, administrative, and general matters.
+- [x] Add downloadable review reports for each case file so judges can export the latest structured quality review as a formal document.
+- [x] Add a side-by-side diff between successive saved reviews so judges can compare how findings, blockers, and quality signals changed from one review version to the next.
+- [x] Add signed PDF export for review reports alongside DOCX so the latest structured judicial-quality review can also be issued in a formal PDF format.
+- [x] Visually highlight changed findings within the side-by-side saved-review comparison panel so judges can identify additions, removals, and changed severity at a glance.

@@ -1,0 +1,66 @@
+{
+  "appId": "com.judgeai.app",
+  "productName": "Judge AI",
+  "copyright": "Copyright © 2024 Judge AI",
+  "artifactName": "${productName}-${version}-Setup.${ext}",
+  "files": [
+    {
+      "from": "dist/exe",
+      "to": ".",
+      "filter": ["**/*"]
+    }
+  ],
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+  "extraResources": [
+    {
+      "from": "dist/exe/public",
+      "to": "public",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "dist/exe/.env",
+      "to": ".env",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "build/icon.ico",
+    "requestedExecutionLevel": "asInvoker",
+    "signingHashAlgorithms": ["sha256"],
+    "publisherName": "Judge AI"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Judge AI",
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico",
+    "installerHeaderIcon": "build/icon.ico",
+    "include": "build/installer.nsh",
+    "license": "LICENSE",
+    "runAfterFinish": true,
+    "deleteAppDataOnUninstall": false,
+    "differentialPackage": false,
+    "unicode": true,
+    "installerLanguages": "en_US",
+    "language": "1033",
+    "warningsAsErrors": false,
+    "compress": "lzma",
+    "solid": true,
+    "packElevateHelper": false,
+    "script": "build/installer.nsh"
+  },
+  "fileAssociations": [],
+  "protocols": []
+}
