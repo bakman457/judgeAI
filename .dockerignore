@@ -1,0 +1,51 @@
+# Dependencies & caches
+node_modules
+.pnpm-store
+
+# Build outputs (rebuilt inside container)
+dist
+
+# Version control
+.git
+.gitignore
+
+# Local database & data
+mariadb-data
+mariadb-10.11.10-winx64
+
+# Local uploads (ephemeral in container)
+uploads
+
+# Logs
+logs
+*.log
+.manus-logs
+
+# IDE & tooling
+.claude
+.qwen
+.serena
+.codex-build-test
+.vscode
+.idea
+
+# Desktop builds (not needed for web deploy)
+release
+build
+electron
+
+# Documentation
+Project Code
+*.md
+!README.md
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Secrets (managed via Secret Manager in production)
+.env
+.encryption-salt*
+
+# Package manager
+.pnpm-debug.log*
