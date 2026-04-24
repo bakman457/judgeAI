@@ -31,13 +31,16 @@ jobs:
           version: 10.4.1
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build client & server
         run: pnpm build
 
       - name: Build CJS server bundle
         run: pnpm build:cjs
+
+      - name: Clean old releases
+        run: rm -rf release
 
       - name: Build Mac executables
         run: npx electron-builder --mac

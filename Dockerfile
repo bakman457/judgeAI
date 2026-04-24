@@ -20,7 +20,7 @@ RUN npm install -g pnpm@10.4.1 && \
 COPY package.json pnpm-lock.yaml .npmrc* ./
 
 # Install all dependencies (including devDeps needed for build)
-RUN pnpm install --frozen-lockfile
+RUN pnpm install
 
 # Copy application source
 COPY . .

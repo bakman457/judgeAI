@@ -173,7 +173,7 @@
       }
     ],
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": ["zip"],
       "category": "public.app-category.productivity",
       "identity": null
     },
