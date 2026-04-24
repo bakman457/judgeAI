@@ -33,10 +33,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm@9
+          pnpm --version
 
       - name: Install system dependencies (libvips for sharp)
         run: |
