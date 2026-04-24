@@ -60,7 +60,7 @@ jobs:
           echo "Release directory"
           ls -lah release || true
           echo "Mac artifacts"
-          find release -maxdepth 2 -type f ( -name "*.zip" -o -name "*.dmg" ) -print || true
+          find release -maxdepth 2 -type f \( -name "*.zip" -o -name "*.dmg" \) -print || true
 
       - name: Upload Mac artifacts
         uses: actions/upload-artifact@v4
