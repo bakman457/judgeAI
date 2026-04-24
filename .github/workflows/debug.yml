@@ -1,0 +1,10 @@
+name: Debug
+on: [push, workflow_dispatch]
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - run: echo "Hello from macOS"
+      - run: uname -a
+      - run: node --version
+      - run: npm --version
