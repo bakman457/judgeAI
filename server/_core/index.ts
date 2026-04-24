@@ -11,7 +11,7 @@ import { appRouter } from "../routers";
 import { createContext, setDesktopAdminUser } from "./context";
 import { serveStatic } from "./vite";
 import { ENV } from "./env";
-import { upsertUser, getUserByOpenId, cleanupOrphanedProcessingJobs } from "../db";
+import { upsertUser, getUserByOpenId, cleanupOrphanedProcessingJobs, reapStaleProcessingJobs } from "../db";
 import { saveProviderSettings, seedGreekInheritanceKnowledgeBase } from "../judgeAiService";
 import { listAiProviderSettings, setActiveAiProviderSetting } from "../db";
 import { API_UPLOAD_BODY_LIMIT } from "../../shared/const";
@@ -112,6 +112,22 @@ async function startServer() {
       console.warn("[Startup] Could not clean up orphaned jobs:", cleanupError);
     }
 
+    // Start a periodic reaper so jobs that silently hang mid-run (e.g. a
+    // dropped LLM connection that never resolves) eventually fail instead
+    // of spinning the UI forever.
+    const STALE_JOB_MAX_AGE_MS = 30 * 60_000; // 30 minutes
+    const REAPER_INTERVAL_MS = 5 * 60_000;    // 5 minutes
+    setInterval(async () => {
+      try {
+        const reaped = await reapStaleProcessingJobs(STALE_JOB_MAX_AGE_MS);
+        if (reaped > 0) {
+          console.warn(`[Reaper] Marked ${reaped} stale processing job(s) as failed.`);
+        }
+      } catch (reaperError) {
+        console.warn("[Reaper] Stale-job sweep failed:", reaperError);
+      }
+    }, REAPER_INTERVAL_MS).unref();
+
     // Seed Greek inheritance-law knowledge base on first start (idempotent — skips entries that already exist by title)
     try {
       const knowledgeSeedResult = await seedGreekInheritanceKnowledgeBase(desktopUser.id);
@@ -185,7 +201,7 @@ async function startServer() {
     message: { error: "AI request limit reached. Please wait a moment and try again." },
   });
   app.use(
-    /^\/api\/trpc\/.*(drafts\.generate|judgeAi\.reviewJudgment|judgeStyle\.generateProfile|judgeAi\.exportReviewReport)/,
+    /^\/api\/trpc\/.*(drafts\.generate|judgeAi\.reviewJudgment|judgeStyle\.generateProfile|judgeAi\.exportReviewReport|cases\.reviewBatch|drafts\.transcribeSectionNote|cases\.explainFinding)/,
     aiLimiter,
   );
 

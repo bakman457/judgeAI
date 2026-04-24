@@ -159,3 +159,25 @@ export async function storageGet(relKey: string): Promise<{ key: string; url: st
     url: await buildDownloadUrl(baseUrl, key, apiKey),
   };
 }
+
+/**
+ * Reads the raw file bytes for a stored object. Uses the filesystem directly
+ * when local-storage mode is active; otherwise fetches via the presigned
+ * download URL. Used by server-side bundle exports that need to zip files.
+ */
+export async function storageGetBuffer(relKey: string): Promise<Buffer> {
+  const key = normalizeKey(relKey);
+  if (useLocalStorage) {
+    ensureUploadsDir();
+    const filePath = path.join(UPLOADS_DIR, key);
+    return fs.promises.readFile(filePath);
+  }
+  const { baseUrl, apiKey } = getStorageConfig();
+  const url = await buildDownloadUrl(baseUrl, key, apiKey);
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Storage download failed (${response.status} ${response.statusText}) for key ${key}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}

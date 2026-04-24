@@ -8,6 +8,7 @@ import {
   inArray,
   isNull,
   like,
+  lt,
   max,
   ne,
   or,
@@ -49,6 +50,10 @@ import {
   paragraphAnnotations,
   processingJobs,
   reviewApprovalThresholds,
+  reviewFindingResolutions,
+  InsertReviewFindingResolution,
+  aiUsageEvents,
+  InsertAiUsageEvent,
   User,
   users,
   userSessions,
@@ -367,6 +372,125 @@ export async function getActiveAiProviderSetting() {
     .limit(1);
 
   return result[0];
+}
+
+/**
+ * Ordered list of providers to attempt for a single LLM invocation: the
+ * requested provider first (or the active one when unspecified), followed by
+ * every non-archived provider in ascending fallbackOrder. De-duplicated by id.
+ */
+export async function recordAiUsageEvent(event: InsertAiUsageEvent) {
+  const db = await ensureDb();
+  try {
+    await db.insert(aiUsageEvents).values(event);
+  } catch (error) {
+    console.warn("[Usage] Failed to persist AI usage event:", error);
+  }
+}
+
+/**
+ * Aggregate AI usage statistics grouped by day for the last N days. Used by
+ * the admin usage dashboard to visualise token consumption and cache efficacy.
+ */
+export async function getAiUsageStats(days: number) {
+  const db = await ensureDb();
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select()
+    .from(aiUsageEvents)
+    .where(gt(aiUsageEvents.createdAt, cutoff))
+    .orderBy(desc(aiUsageEvents.createdAt))
+    .limit(5000);
+
+  const byDay = new Map<string, {
+    day: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    cachedTokens: number;
+    requests: number;
+  }>();
+  const byProvider = new Map<string, { providerName: string; requests: number; totalTokens: number; cachedTokens: number }>();
+  let totalRequests = 0;
+  let totalTokens = 0;
+  let totalPromptTokens = 0;
+  let totalCompletionTokens = 0;
+  let totalCachedTokens = 0;
+
+  for (const row of rows) {
+    const dayKey = new Date(row.createdAt).toISOString().slice(0, 10);
+    const dayEntry = byDay.get(dayKey) ?? {
+      day: dayKey,
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      cachedTokens: 0,
+      requests: 0,
+    };
+    dayEntry.promptTokens += row.promptTokens ?? 0;
+    dayEntry.completionTokens += row.completionTokens ?? 0;
+    dayEntry.totalTokens += row.totalTokens ?? 0;
+    dayEntry.cachedTokens += row.cachedTokens ?? 0;
+    dayEntry.requests += 1;
+    byDay.set(dayKey, dayEntry);
+
+    const providerKey = row.providerName ?? "(unknown)";
+    const providerEntry = byProvider.get(providerKey) ?? {
+      providerName: providerKey,
+      requests: 0,
+      totalTokens: 0,
+      cachedTokens: 0,
+    };
+    providerEntry.requests += 1;
+    providerEntry.totalTokens += row.totalTokens ?? 0;
+    providerEntry.cachedTokens += row.cachedTokens ?? 0;
+    byProvider.set(providerKey, providerEntry);
+
+    totalRequests += 1;
+    totalTokens += row.totalTokens ?? 0;
+    totalPromptTokens += row.promptTokens ?? 0;
+    totalCompletionTokens += row.completionTokens ?? 0;
+    totalCachedTokens += row.cachedTokens ?? 0;
+  }
+
+  return {
+    days,
+    totalRequests,
+    totalTokens,
+    totalPromptTokens,
+    totalCompletionTokens,
+    totalCachedTokens,
+    cacheHitRate: totalPromptTokens > 0 ? totalCachedTokens / totalPromptTokens : 0,
+    byDay: Array.from(byDay.values()).sort((a, b) => a.day.localeCompare(b.day)),
+    byProvider: Array.from(byProvider.values()).sort((a, b) => b.totalTokens - a.totalTokens),
+  };
+}
+
+export async function listProviderFailoverChain(preferredProviderId?: number | null) {
+  const db = await ensureDb();
+  const all = await db
+    .select()
+    .from(aiProviderSettings)
+    .where(eq(aiProviderSettings.isArchived, false))
+    .orderBy(asc(aiProviderSettings.fallbackOrder), asc(aiProviderSettings.id));
+
+  if (all.length === 0) return [];
+  const byId = new Map(all.map(p => [p.id, p]));
+  const chain: typeof all = [];
+  const seen = new Set<number>();
+
+  const preferred = preferredProviderId ? byId.get(preferredProviderId) : all.find(p => p.isActive);
+  if (preferred) {
+    chain.push(preferred);
+    seen.add(preferred.id);
+  }
+  for (const p of all) {
+    if (!seen.has(p.id)) {
+      chain.push(p);
+      seen.add(p.id);
+    }
+  }
+  return chain;
 }
 
 export async function saveAiProviderSetting(input: InsertAiProviderSetting) {
@@ -742,6 +866,32 @@ export async function cleanupOrphanedProcessingJobs() {
     .where(eq(processingJobs.status, "running"));
 }
 
+/**
+ * Mark jobs that have been in "running" state past a staleness threshold as
+ * failed. Protects against silently-stuck generation calls (e.g. dropped LLM
+ * connections that never resolve or reject) so the UI doesn't spin forever.
+ */
+export async function reapStaleProcessingJobs(maxAgeMs: number): Promise<number> {
+  const db = await ensureDb();
+  const cutoff = new Date(Date.now() - maxAgeMs);
+  const stale = await db
+    .select({ id: processingJobs.id })
+    .from(processingJobs)
+    .where(and(eq(processingJobs.status, "running"), lt(processingJobs.updatedAt, cutoff)));
+
+  if (stale.length === 0) return 0;
+
+  await db
+    .update(processingJobs)
+    .set({
+      status: "failed",
+      errorMessage: `Job exceeded the ${Math.round(maxAgeMs / 60_000)}-minute running threshold and was marked failed by the reaper.`,
+    })
+    .where(and(eq(processingJobs.status, "running"), lt(processingJobs.updatedAt, cutoff)));
+
+  return stale.length;
+}
+
 export async function getLatestProcessingJobForCase(caseId: number, jobType?: string) {
   const db = await ensureDb();
   const conditions = [eq(processingJobs.caseId, caseId)];
@@ -976,6 +1126,7 @@ export async function updateDraftSection(
   updates: {
     sectionText?: string;
     reviewStatus?: "draft" | "reviewed" | "approved";
+    authorNote?: string | null;
     lastEditedBy?: number | null;
     approvedBy?: number | null;
     approvedAt?: Date | null;
@@ -1082,6 +1233,118 @@ export async function getCaseReviewSnapshotById(reviewId: number) {
   return result[0];
 }
 
+/**
+ * Cases in active drafting/review whose most-recent review snapshot is older
+ * than `maxAgeMs` (or where no review has ever run). Used by the overview
+ * dashboard to surface matters the judge hasn't re-validated in a while.
+ */
+export async function listStaleDraftingCases(user: CaseAccessUser, maxAgeMs: number) {
+  const db = await ensureDb();
+  const cutoff = new Date(Date.now() - maxAgeMs);
+  const activeCases = await listCases(user, {});
+  const relevant = activeCases.filter(c => c.status === "drafting" || c.status === "under_review");
+  if (relevant.length === 0) return [];
+
+  const caseIds = relevant.map(c => c.id);
+  const snapshots = await db
+    .select({
+      caseId: caseReviewSnapshots.caseId,
+      latestCreatedAt: sql<Date>`max(${caseReviewSnapshots.createdAt})`.as("latestCreatedAt"),
+    })
+    .from(caseReviewSnapshots)
+    .where(inArray(caseReviewSnapshots.caseId, caseIds))
+    .groupBy(caseReviewSnapshots.caseId);
+
+  const latestByCase = new Map<number, Date>();
+  for (const row of snapshots) {
+    if (row.latestCreatedAt) latestByCase.set(row.caseId, new Date(row.latestCreatedAt));
+  }
+
+  return relevant
+    .filter(c => {
+      const last = latestByCase.get(c.id);
+      return !last || last < cutoff;
+    })
+    .map(c => ({
+      id: c.id,
+      caseNumber: c.caseNumber,
+      title: c.title,
+      status: c.status,
+      lastReviewedAt: latestByCase.get(c.id) ?? null,
+    }));
+}
+
+export async function listFindingResolutionsForSnapshot(reviewSnapshotId: number) {
+  const db = await ensureDb();
+  return db
+    .select()
+    .from(reviewFindingResolutions)
+    .where(eq(reviewFindingResolutions.reviewSnapshotId, reviewSnapshotId))
+    .orderBy(asc(reviewFindingResolutions.findingIndex));
+}
+
+export async function upsertFindingResolution(input: {
+  reviewSnapshotId: number;
+  findingIndex: number;
+  status: "addressed" | "accepted" | "deferred";
+  note: string | null;
+  resolvedBy: number;
+}) {
+  const db = await ensureDb();
+  const existing = await db
+    .select()
+    .from(reviewFindingResolutions)
+    .where(
+      and(
+        eq(reviewFindingResolutions.reviewSnapshotId, input.reviewSnapshotId),
+        eq(reviewFindingResolutions.findingIndex, input.findingIndex),
+      ),
+    )
+    .limit(1);
+
+  if (existing[0]) {
+    await db
+      .update(reviewFindingResolutions)
+      .set({ status: input.status, note: input.note, resolvedBy: input.resolvedBy })
+      .where(eq(reviewFindingResolutions.id, existing[0].id));
+    const fresh = await db
+      .select()
+      .from(reviewFindingResolutions)
+      .where(eq(reviewFindingResolutions.id, existing[0].id))
+      .limit(1);
+    return fresh[0] ?? null;
+  }
+
+  const insertPayload: InsertReviewFindingResolution = {
+    reviewSnapshotId: input.reviewSnapshotId,
+    findingIndex: input.findingIndex,
+    status: input.status,
+    note: input.note,
+    resolvedBy: input.resolvedBy,
+  };
+  const newId = await insertAndGetId(
+    db.insert(reviewFindingResolutions).values(insertPayload).$returningId(),
+  );
+  const fresh = await db
+    .select()
+    .from(reviewFindingResolutions)
+    .where(eq(reviewFindingResolutions.id, newId))
+    .limit(1);
+  return fresh[0] ?? null;
+}
+
+export async function clearFindingResolution(reviewSnapshotId: number, findingIndex: number) {
+  const db = await ensureDb();
+  await db
+    .delete(reviewFindingResolutions)
+    .where(
+      and(
+        eq(reviewFindingResolutions.reviewSnapshotId, reviewSnapshotId),
+        eq(reviewFindingResolutions.findingIndex, findingIndex),
+      ),
+    );
+}
+
 export async function listCaseReviewSnapshots(caseId: number) {
   const db = await ensureDb();
   return db
@@ -1131,6 +1394,96 @@ export async function logCaseActivity(input: InsertCaseActivityLog) {
   const activityId = await insertAndGetId(db.insert(caseActivityLogs).values(input).$returningId());
   const result = await db.select().from(caseActivityLogs).where(eq(caseActivityLogs.id, activityId)).limit(1);
   return result[0];
+}
+
+/**
+ * Cross-docket search: returns matching case documents across every case the
+ * user can access, plus knowledge-base hits. Used by the dashboard's
+ * "search across all cases" field.
+ */
+export async function searchAcrossUserCases(user: CaseAccessUser, query: string) {
+  const db = await ensureDb();
+  const searchPattern = makeSearchPattern(query);
+  if (!searchPattern) {
+    return { caseDocuments: [], knowledgeDocuments: [] };
+  }
+
+  const accessibleCases = await listCases(user, {});
+  const caseIds = accessibleCases.map(c => c.id);
+  if (caseIds.length === 0) {
+    return { caseDocuments: [], knowledgeDocuments: [] };
+  }
+  const caseLookup = new Map(accessibleCases.map(c => [c.id, { caseNumber: c.caseNumber, title: c.title }]));
+
+  try {
+    const caseRelevance = sql<number>`MATCH(${caseDocuments.title}, ${caseDocuments.extractedText}) AGAINST (${query} IN NATURAL LANGUAGE MODE)`;
+    const knowledgeRelevance = sql<number>`MATCH(${knowledgeDocuments.title}, ${knowledgeDocuments.citation}, ${knowledgeDocuments.summary}, ${knowledgeDocuments.extractedText}) AGAINST (${query} IN NATURAL LANGUAGE MODE)`;
+
+    const [caseRows, knowledgeRows] = await Promise.all([
+      db
+        .select()
+        .from(caseDocuments)
+        .where(and(inArray(caseDocuments.caseId, caseIds), sql`${caseRelevance} > 0`))
+        .orderBy(desc(caseRelevance), desc(caseDocuments.updatedAt))
+        .limit(50),
+      db
+        .select()
+        .from(knowledgeDocuments)
+        .where(sql`${knowledgeRelevance} > 0`)
+        .orderBy(desc(knowledgeRelevance), desc(knowledgeDocuments.updatedAt))
+        .limit(25),
+    ]);
+
+    return {
+      caseDocuments: caseRows.map(row => ({
+        ...row,
+        caseNumber: caseLookup.get(row.caseId)?.caseNumber ?? null,
+        caseTitle: caseLookup.get(row.caseId)?.title ?? null,
+      })),
+      knowledgeDocuments: knowledgeRows,
+    };
+  } catch (error) {
+    console.warn("[CrossCaseSearch] Full-text search unavailable; falling back to LIKE.", error);
+  }
+
+  const [caseRows, knowledgeRows] = await Promise.all([
+    db
+      .select()
+      .from(caseDocuments)
+      .where(
+        and(
+          inArray(caseDocuments.caseId, caseIds),
+          or(
+            like(caseDocuments.title, searchPattern),
+            like(caseDocuments.extractedText, searchPattern),
+          ),
+        ),
+      )
+      .orderBy(desc(caseDocuments.updatedAt))
+      .limit(50),
+    db
+      .select()
+      .from(knowledgeDocuments)
+      .where(
+        or(
+          like(knowledgeDocuments.title, searchPattern),
+          like(knowledgeDocuments.citation, searchPattern),
+          like(knowledgeDocuments.summary, searchPattern),
+          like(knowledgeDocuments.extractedText, searchPattern),
+        ),
+      )
+      .orderBy(desc(knowledgeDocuments.updatedAt))
+      .limit(25),
+  ]);
+
+  return {
+    caseDocuments: caseRows.map(row => ({
+      ...row,
+      caseNumber: caseLookup.get(row.caseId)?.caseNumber ?? null,
+      caseTitle: caseLookup.get(row.caseId)?.title ?? null,
+    })),
+    knowledgeDocuments: knowledgeRows,
+  };
 }
 
 export async function searchCaseAndKnowledgeDocuments(caseId: number, query: string) {

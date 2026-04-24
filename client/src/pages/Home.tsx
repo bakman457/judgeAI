@@ -35,6 +35,8 @@ import {
   BookOpen,
   Bot,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Download,
   Eye,
   FilePlus2,
@@ -67,1165 +69,14 @@ import {
   LoadingPanel,
   MetricCard,
   MultiFileField,
+  SectionAuthorNote,
   SelectField,
   ShellCard,
   TextAreaField,
   WorkspaceFact,
 } from "./home/components";
 import type { CaseReviewResult, ReviewSnapshot } from "./home/reviewUtils";
-
-const localizedCopy = {
-  en: {
-    nav: {
-      overview: "Overview",
-      cases: "Cases",
-      knowledge: "Knowledge Base",
-      help: "Help",
-      admin: "Administration",
-      logs: "Logs",
-      judgeStyle: "Judge Style",
-    },
-    shell: {
-      knowledgeBaseAction: "Knowledge base",
-      openCasesAction: "Open cases",
-      eyebrow: "Authoritative drafting environment",
-      overviewTitle: "Judicial decision drafting platform",
-      overviewDescription:
-        "An elegant, role-aware judicial workspace for secure case handling, legal knowledge retrieval, and AI-assisted decision drafting.",
-      casesTitle: "Case management",
-      casesDescription:
-        "Create, classify, and review judicial matters before drafting and approval.",
-      knowledgeTitle: "Legal knowledge repository",
-      knowledgeDescription:
-        "Upload and maintain searchable statutes, regulations, precedents, and reusable references.",
-      helpTitle: "Help and user guidance",
-      helpDescription:
-        "Learn how to upload materials, manage matters, generate drafts, review outputs, and use every major function with practical examples.",
-      adminTitle: "Administrative control centre",
-      adminDescription:
-        "Configure AI providers, roles, and platform governance from a protected administrative space.",
-      workspaceDescription:
-        "Review evidence, search legal materials, refine the structured draft, and preserve an auditable activity trail.",
-    },
-    overview: {
-      activeCases: "Active cases",
-      activeCasesDetail: "Securely managed matters available to the judicial workspace.",
-      knowledgeItems: "Knowledge items",
-      knowledgeItemsDetail: "Persistent legislation, precedents, and reference materials.",
-      draftReady: "Draft-ready matters",
-      draftReadyDetail: "Cases currently in review or approved for decision output.",
-      indexedDocuments: "Indexed documents",
-      indexedDocumentsDetail: "Uploaded materials contributing to search and drafting context.",
-      intakeTitle: "Submission intake dashboard",
-      intakeDescription:
-        "Prioritize newly received matters, surface operational deadline risks, and move quickly from intake to judicial review.",
-      priorityNow: "Priority matters",
-      priorityNowDetail: "Cases requiring immediate triage because they are new, stalled, or close to a review window.",
-      dueSoon: "Due soon",
-      dueSoonDetail: "Matters approaching the operational deadline window for document review, drafting, or judicial review.",
-      overdue: "Overdue",
-      overdueDetail: "Cases whose current workflow stage has exceeded the recommended operational handling window.",
-      priorityQueueTitle: "Prioritized intake queue",
-      priorityQueueDescription:
-        "Queue ranking uses case stage and time since last update so clerks and judges can address the most urgent matters first.",
-      noIntakeQueue: "No active matters are waiting in the intake queue.",
-      deadlineOnTrack: "On track",
-      intakePriorityCritical: "Critical",
-      intakePriorityHigh: "High",
-      intakePriorityNormal: "Normal",
-      intakeCreatedSummary: "Initial intake is still pending and the matter should be reviewed for document completeness.",
-      intakeDocumentsSummary: "Document review is active and the uploaded bundle should be validated and categorized.",
-      intakeDraftingSummary: "The file is ready for structured drafting and should move into the reasoning workflow.",
-      intakeReviewSummary: "A judicial reviewer should assess the current draft and consistency findings soon.",
-      intakeApprovedSummary: "The matter is approved and should be exported, closed, or archived according to practice.",
-      focusTitle: "Judicial activity focus",
-      focusDescription:
-        "Move from intake to structured drafting with auditable steps and a stable knowledge foundation.",
-      curateLawTitle: "1. Curate the law",
-      curateLawDescription:
-        "Upload statutes, regulations, precedents, and reusable guidance into the permanent knowledge base.",
-      assembleCaseTitle: "2. Assemble the case",
-      assembleCaseDescription:
-        "Create the matter, add pleadings and evidence, and track document processing and duplicate detection.",
-      refineDraftTitle: "3. Refine the draft",
-      refineDraftDescription:
-        "Generate five structured sections, review every paragraph, approve the result, and export to DOCX.",
-      recentMattersTitle: "Recent matters",
-      recentMattersDescription:
-        "Open a matter to upload case documents, run search, and manage structured draft review.",
-      updatedPrefix: "Updated",
-      noCases:
-        "No cases have been created yet. Use the case management area to register the first judicial matter.",
-      searchPlaceholder: "Search by title, number, court, or type…",
-      filterAll: "All priorities",
-      filterCritical: "Critical only",
-      filterHigh: "High + critical",
-      filterNormal: "Normal only",
-      clearFilters: "Clear filters",
-      exportCsv: "Export CSV",
-      advanceStage: "Advance",
-      customizeTitle: "Customize",
-      customizeLabel: "Show sections",
-      sectionFocus: "Focus pipeline",
-      sectionIntake: "Intake dashboard",
-      sectionRecent: "Recent matters",
-      sectionKnowledge: "Knowledge snapshot",
-      sectionGovernance: "Governance",
-      sectionThroughput: "Throughput analytics",
-      throughputTitle: "Throughput analytics",
-      throughputDescription: "Closed-decision output and queue health over rolling windows.",
-      throughputApproved7: "Approved last 7 days",
-      throughputApproved30: "Approved last 30 days",
-      throughputAvgAge: "Avg. age of open matters (days)",
-      throughputOpenCount: "Open matters",
-      throughputApproved7Detail: "Decisions finalised in the last rolling week.",
-      throughputApproved30Detail: "Decisions finalised in the last rolling month.",
-      throughputAvgAgeDetail: "Mean age of matters that are still being worked on.",
-      throughputOpenCountDetail: "Active matters not yet approved or archived.",
-      noMattersMatchingFilter: "No matters match the current search or filters.",
-      knowledgeSnapshotTitle: "Knowledge base snapshot",
-      knowledgeSnapshotDescription:
-        "A persistent library of applicable law and reusable reference documents.",
-      noKnowledge: "No legal reference material has been uploaded yet.",
-      governanceTitle: "Governance and access",
-      governanceDescription:
-        "Role separation is enforced through protected procedures and UI-aware navigation.",
-      currentRole: "Current role",
-      providerConfiguration: "Provider configuration",
-      providerDescription:
-        "Administrators can configure the AI endpoint, model, and credential without code changes.",
-      openWorkspace: "Open workspace",
-      noMatters: "No matters available yet.",
-      guest: "guest",
-    },
-  },
-  el: {
-    nav: {
-      overview: "Επισκόπηση",
-      cases: "Υποθέσεις",
-      knowledge: "Βάση Γνώσης",
-      help: "Βοήθεια",
-      admin: "Διαχείριση",
-      logs: "Αρχεία καταγραφής",
-      judgeStyle: "Στυλ Δικαστή",
-    },
-    shell: {
-      knowledgeBaseAction: "Βάση γνώσης",
-      openCasesAction: "Άνοιγμα υποθέσεων",
-      eyebrow: "Αυθεντικό περιβάλλον σύνταξης",
-      overviewTitle: "Πλατφόρμα σύνταξης δικαστικών αποφάσεων",
-      overviewDescription:
-        "Ένα κομψό, ασφαλές και προσανατολισμένο στους ρόλους δικαστικό περιβάλλον για διαχείριση υποθέσεων, ανάκτηση νομικής γνώσης και σύνταξη αποφάσεων με υποστήριξη AI.",
-      casesTitle: "Διαχείριση υποθέσεων",
-      casesDescription:
-        "Δημιουργήστε, ταξινομήστε και παρακολουθήστε δικαστικές υποθέσεις πριν από τη σύνταξη και την έγκριση.",
-      knowledgeTitle: "Αποθετήριο νομικής γνώσης",
-      knowledgeDescription:
-        "Ανεβάστε και διατηρήστε αναζητήσιμους νόμους, κανονισμούς, νομολογία και χρήσιμες αναφορές.",
-      helpTitle: "Βοήθεια και καθοδήγηση χρήστη",
-      helpDescription:
-        "Μάθετε πώς να μεταφορτώνετε υλικό, να διαχειρίζεστε υποθέσεις, να παράγετε σχέδια, να ελέγχετε αποτελέσματα και να χρησιμοποιείτε κάθε βασική λειτουργία με πρακτικά παραδείγματα.",
-      adminTitle: "Κέντρο διοικητικού ελέγχου",
-      adminDescription:
-        "Ρυθμίστε παρόχους AI, ρόλους και κανόνες διακυβέρνησης από προστατευμένο διοικητικό χώρο.",
-      workspaceDescription:
-        "Εξετάστε αποδεικτικά στοιχεία, αναζητήστε νομικό υλικό, βελτιώστε το δομημένο σχέδιο και διατηρήστε πλήρες ίχνος ενεργειών.",
-    },
-    overview: {
-      activeCases: "Ενεργές υποθέσεις",
-      activeCasesDetail: "Ασφαλώς διαχειριζόμενες υποθέσεις διαθέσιμες στο δικαστικό περιβάλλον.",
-      knowledgeItems: "Στοιχεία γνώσης",
-      knowledgeItemsDetail: "Μόνιμη νομοθεσία, νομολογία και έγγραφα αναφοράς.",
-      draftReady: "Υποθέσεις έτοιμες για σχέδιο",
-      draftReadyDetail: "Υποθέσεις που βρίσκονται σε έλεγχο ή έχουν εγκριθεί για τελική απόφαση.",
-      indexedDocuments: "Ευρετηριασμένα έγγραφα",
-      indexedDocumentsDetail: "Ανεβασμένο υλικό που τροφοδοτεί την αναζήτηση και το πλαίσιο σύνταξης.",
-      intakeTitle: "Πίνακας καταχώρισης υποβολών",
-      intakeDescription:
-        "Ιεραρχήστε τις νέες υποθέσεις, εντοπίστε έγκαιρα λειτουργικούς κινδύνους προθεσμιών και μεταφέρετε γρήγορα την εργασία από την καταχώριση στον δικαστικό έλεγχο.",
-      priorityNow: "Υποθέσεις προτεραιότητας",
-      priorityNowDetail: "Υποθέσεις που χρειάζονται άμεση διαλογή επειδή είναι νέες, έχουν καθυστερήσει ή πλησιάζουν παράθυρο ελέγχου.",
-      dueSoon: "Λήγουν σύντομα",
-      dueSoonDetail: "Υποθέσεις που πλησιάζουν το λειτουργικό παράθυρο προθεσμίας για έλεγχο εγγράφων, σύνταξη ή δικαστικό έλεγχο.",
-      overdue: "Εκπρόθεσμες",
-      overdueDetail: "Υποθέσεις των οποίων το τρέχον στάδιο έχει ξεπεράσει το προτεινόμενο λειτουργικό παράθυρο χειρισμού.",
-      priorityQueueTitle: "Ουρά προτεραιοποίησης",
-      priorityQueueDescription:
-        "Η κατάταξη της ουράς βασίζεται στο στάδιο της υπόθεσης και στον χρόνο από την τελευταία ενημέρωση, ώστε γραμματεία και δικαστές να αντιμετωπίζουν πρώτα τα πιο επείγοντα θέματα.",
-      noIntakeQueue: "Δεν υπάρχουν ενεργές υποθέσεις σε αναμονή στην ουρά καταχώρισης.",
-      deadlineOnTrack: "Εντός προθεσμίας",
-      intakePriorityCritical: "Κρίσιμη",
-      intakePriorityHigh: "Υψηλή",
-      intakePriorityNormal: "Κανονική",
-      intakeCreatedSummary: "Η αρχική καταχώριση εκκρεμεί και η υπόθεση πρέπει να ελεγχθεί ως προς την πληρότητα των εγγράφων.",
-      intakeDocumentsSummary: "Ο έλεγχος εγγράφων είναι ενεργός και το υλικό πρέπει να επικυρωθεί και να κατηγοριοποιηθεί.",
-      intakeDraftingSummary: "Ο φάκελος είναι έτοιμος για δομημένη σύνταξη και πρέπει να περάσει στο στάδιο αιτιολόγησης.",
-      intakeReviewSummary: "Δικαστικός ελεγκτής πρέπει σύντομα να αξιολογήσει το τρέχον σχέδιο και τα ευρήματα συνέπειας.",
-      intakeApprovedSummary: "Η υπόθεση έχει εγκριθεί και πρέπει να εξαχθεί, να κλείσει ή να αρχειοθετηθεί σύμφωνα με την πρακτική.",
-      focusTitle: "Εστίαση δικαστικής δραστηριότητας",
-      focusDescription:
-        "Μεταβείτε από την καταχώριση στη δομημένη σύνταξη με ελέγξιμα βήματα και σταθερή νομική βάση γνώσης.",
-      curateLawTitle: "1. Οργανώστε το δίκαιο",
-      curateLawDescription:
-        "Ανεβάστε νόμους, κανονισμούς, νομολογία και επαναχρησιμοποιήσιμες οδηγίες στη μόνιμη βάση γνώσης.",
-      assembleCaseTitle: "2. Συγκροτήστε την υπόθεση",
-      assembleCaseDescription:
-        "Δημιουργήστε την υπόθεση, προσθέστε δικόγραφα και αποδεικτικά στοιχεία, και παρακολουθήστε επεξεργασία και διπλότυπα.",
-      refineDraftTitle: "3. Βελτιώστε το σχέδιο",
-      refineDraftDescription:
-        "Παράγετε πέντε δομημένες ενότητες, ελέγξτε κάθε παράγραφο, εγκρίνετε το αποτέλεσμα και εξάγετε σε DOCX.",
-      recentMattersTitle: "Πρόσφατες υποθέσεις",
-      recentMattersDescription:
-        "Ανοίξτε μια υπόθεση για μεταφόρτωση εγγράφων, αναζήτηση πηγών και διαχείριση του δομημένου σχεδίου.",
-      updatedPrefix: "Ενημερώθηκε",
-      noCases:
-        "Δεν έχουν δημιουργηθεί ακόμη υποθέσεις. Χρησιμοποιήστε τη διαχείριση υποθέσεων για να καταχωρίσετε την πρώτη υπόθεση.",
-      searchPlaceholder: "Αναζήτηση τίτλου, αριθμού, δικαστηρίου ή τύπου…",
-      filterAll: "Όλες οι προτεραιότητες",
-      filterCritical: "Μόνο κρίσιμες",
-      filterHigh: "Υψηλή + κρίσιμη",
-      filterNormal: "Μόνο κανονικές",
-      clearFilters: "Καθαρισμός φίλτρων",
-      exportCsv: "Εξαγωγή CSV",
-      advanceStage: "Προώθηση",
-      customizeTitle: "Προσαρμογή",
-      customizeLabel: "Εμφάνιση ενοτήτων",
-      sectionFocus: "Ροή εργασιών",
-      sectionIntake: "Πίνακας καταχώρισης",
-      sectionRecent: "Πρόσφατες υποθέσεις",
-      sectionKnowledge: "Στιγμιότυπο γνώσης",
-      sectionGovernance: "Διακυβέρνηση",
-      sectionThroughput: "Αναλυτικά ροής",
-      throughputTitle: "Αναλυτικά ροής",
-      throughputDescription: "Ολοκληρωμένες αποφάσεις και κατάσταση ουράς σε κυλιόμενα παράθυρα.",
-      throughputApproved7: "Εγκρίσεις τελευταίων 7 ημερών",
-      throughputApproved30: "Εγκρίσεις τελευταίων 30 ημερών",
-      throughputAvgAge: "Μέση ηλικία ενεργών υποθέσεων (ημέρες)",
-      throughputOpenCount: "Ενεργές υποθέσεις",
-      throughputApproved7Detail: "Αποφάσεις που οριστικοποιήθηκαν την τελευταία εβδομάδα.",
-      throughputApproved30Detail: "Αποφάσεις που οριστικοποιήθηκαν τον τελευταίο μήνα.",
-      throughputAvgAgeDetail: "Μέσος όρος ηλικίας υποθέσεων που εκκρεμούν.",
-      throughputOpenCountDetail: "Ενεργές υποθέσεις που δεν έχουν εγκριθεί ή αρχειοθετηθεί.",
-      noMattersMatchingFilter: "Καμία υπόθεση δεν ταιριάζει στα τρέχοντα κριτήρια.",
-      knowledgeSnapshotTitle: "Στιγμιότυπο βάσης γνώσης",
-      knowledgeSnapshotDescription:
-        "Μόνιμη βιβλιοθήκη εφαρμοστέου δικαίου και επαναχρησιμοποιήσιμων εγγράφων αναφοράς.",
-      noKnowledge: "Δεν έχει ανέβει ακόμη νομικό υλικό αναφοράς.",
-      governanceTitle: "Διακυβέρνηση και πρόσβαση",
-      governanceDescription:
-        "Ο διαχωρισμός ρόλων εφαρμόζεται μέσω προστατευμένων διαδικασιών και πλοήγησης που αναγνωρίζει τον χρήστη.",
-      currentRole: "Τρέχων ρόλος",
-      providerConfiguration: "Ρύθμιση παρόχου",
-      providerDescription:
-        "Οι διαχειριστές μπορούν να ρυθμίσουν endpoint, μοντέλο και διαπιστευτήρια AI χωρίς αλλαγές κώδικα.",
-      openWorkspace: "Άνοιγμα χώρου εργασίας",
-      noMatters: "Δεν υπάρχουν ακόμη διαθέσιμες υποθέσεις.",
-      guest: "επισκέπτης",
-    },
-  },
-} as const;
-
-const localizedInterface = {
-  en: {
-    cases: {
-      createTitle: "Create case",
-      createDescription: "Register a judicial matter with the metadata required to route documents, search, and drafting workflows.",
-      registryTitle: "Case registry",
-      registryDescription: "Select a matter to upload documents, search sources, and drive decision drafting.",
-      caseNumber: "Case number",
-      jurisdictionCode: "Jurisdiction code",
-      courtLevel: "Court level",
-      caseType: "Case type",
-      caseTitle: "Case title",
-      summary: "Summary",
-      languageCode: "Draft language",
-      createAction: "Create case",
-      noMatters: "No matters available yet.",
-      editTitle: "Edit case",
-      editAction: "Save changes",
-      deleteAction: "Delete",
-      deleteConfirmTitle: "Delete case",
-      deleteConfirmBody: "This will permanently remove the case and all associated documents, drafts, and reviews. This cannot be undone.",
-      deleteConfirmCancel: "Cancel",
-      deleteConfirmRun: "Delete case",
-    },
-    knowledge: {
-      uploadTitle: "Upload legal material",
-      uploadDescription: "Add statutes, regulations, precedents, and reference documents to the permanent searchable legal repository.",
-      titleLabel: "Title",
-      documentType: "Document type",
-      jurisdictionCode: "Jurisdiction code",
-      courtLevel: "Court level",
-      citation: "Citation",
-      sourceReference: "Source reference",
-      fileLabel: "Knowledge document",
-      uploadAction: "Upload material",
-      batchTitle: "Batch import legal repository",
-      batchDescription: "Upload multiple files at once. Judge AI will inspect each file, infer the most likely legal-material category, and register duplicates automatically.",
-      batchFileLabel: "Knowledge files for batch import",
-      batchAction: "Run batch import",
-      batchHint: "Ideal for legislation packs, precedent folders, and mixed legal references delivered as one bundle.",
-      repositoryTitle: "Persistent legal repository",
-      repositoryDescription: "These documents remain available across all cases and can be surfaced during drafting and search.",
-      emptyRepository: "The legal repository is empty.",
-      documentTypes: {
-        statute: "Statute",
-        regulation: "Regulation",
-        precedent: "Precedent",
-        reference: "Reference",
-        other: "Other",
-      },
-    },
-    workspace: {
-      loading: "Loading case workspace",
-      notLoadedTitle: "Case workspace",
-      notLoadedDescription: "The requested matter could not be loaded.",
-      notLoadedMessage: "The case may not exist or you may not have access to it.",
-      generateAction: "Generate decision draft",
-      generationProgress: {
-        analyzing: "Analyzing case documents...",
-        reviewing: "Reviewing legal principles...",
-        structuring: "Structuring decision sections...",
-        generating: "Generating paragraph rationales...",
-        finalizing: "Finalizing draft output...",
-        almostThere: "Almost there...",
-        elapsed: "Elapsed",
-        seconds: "s",
-      },
-      status: "Status",
-      caseType: "Case type",
-      assignedJudge: "Assigned judge",
-      unassigned: "Unassigned",
-      created: "Created",
-      searchTitle: "Search the case record",
-      searchDescription: "Surface relevant case-file and knowledge-base passages while drafting.",
-      searchPlaceholder: "Search legislation, precedent, evidence, or references",
-      searchHint: "Enter at least two characters to search the indexed materials for this matter.",
-      uploadTitle: "Upload case material",
-      uploadDescription: "Pleadings, evidence, and supporting documents are validated, hashed, indexed, and checked for duplicates during upload.",
-      documentTitle: "Document title",
-      documentType: "Document type",
-      fileLabel: "Case document",
-      uploadAction: "Upload case document",
-      batchTitle: "Batch import case file",
-      batchDescription: "Drop a multi-file selection into one import action. Judge AI will infer whether each file is a pleading, evidence set, supporting annex, reference, or prior decision.",
-      batchFileLabel: "Case files for batch import",
-      batchAction: "Import and categorize files",
-      batchHint: "Use this workflow when a lawyer or clerk sends many exhibits and pleadings together.",
-      documentsTitle: "Case documents",
-      documentsDescription: "Document uploads retain processing and duplicate detection status, supporting a controlled evidentiary workflow.",
-      emptyDocuments: "No case documents uploaded yet.",
-      caseCheckTitle: "Judgment and legal consistency review",
-      caseCheckDescription: "Compare the proposed judgment or current draft against the case file, applicable law, and knowledge-base material to identify contradictions, evidentiary gaps, and reasoning weaknesses.",
-      caseCheckInputLabel: "Judgment text to review",
-      caseCheckPlaceholder: "Paste a judgment, reasoning section, or leave this field empty to review the latest generated draft.",
-      caseCheckHint: "If you leave the text empty, Judge AI will analyze the latest draft already stored for this matter.",
-      caseCheckQuickActions: "Quick actions",
-      useLatestDraft: "Use latest draft",
-      useReasoningOnly: "Use reasoning section",
-      clearReviewText: "Clear text",
-      reviewTemplateTitle: "Review template",
-      reviewTemplateDescription: "Choose the review lens that best matches the matter. Templates change the legal-consistency checklist used by Judge AI.",
-      reviewTemplateLabel: "Template type",
-      reviewTemplateFocusLabel: "Additional review focus",
-      reviewTemplateFocusPlaceholder: "Optional: add special points to test, such as proportionality, witness credibility, damages, or procedural fairness.",
-      caseCheckAction: "Run legal consistency review",
-      caseCheckSummary: "Review summary",
-      caseCheckFindings: "Key findings",
-      caseCheckIssues: "Core issues and legal questions",
-      caseCheckMissingEvidence: "Potential evidentiary gaps",
-      caseCheckMissingLaw: "Potential legal gaps",
-      caseCheckFeedback: "Feedback for the judge",
-      caseCheckCitations: "Citation and authority verification",
-      caseCheckCredibility: "Evidence credibility signals",
-      caseCheckContradictions: "Contradictions and conflicts",
-      caseCheckPrecedent: "Precedent support and distinguishability",
-      caseCheckRatio: "Ratio decidendi",
-      caseCheckObiter: "Obiter dicta",
-      caseCheckJurisdiction: "Jurisdiction and admissibility",
-      caseCheckProportionality: "Remedy and sanction proportionality",
-      caseCheckDecisionQuality: "Decision quality score",
-      caseCheckPreSignature: "Final pre-signature review",
-      caseCheckBlockers: "Signature blockers",
-      caseCheckRecommendedActions: "Recommended actions before signature",
-      qualityScoreLabel: "Quality score",
-      readyForSignature: "Ready for signature",
-      notReadyForSignature: "Not ready for signature",
-      caseCheckNoItems: "No specific items were identified in this section.",
-      caseCheckEmpty: "No review has been generated yet. Run the checker to inspect whether the proposed judgment is supported by law and evidence.",
-      reviewActionRequired: "Action required: review the findings below and update the draft before approval.",
-      goToDraftFixIssues: "Go to Draft & Fix Issues",
-      reRunReview: "Re-run Consistency Review",
-      viewDraft: "View Draft",
-      newGeneration: "New Generation",
-      exportReviewDocx: "Export DOCX",
-      exportReviewPdf: "Export PDF",
-      markFindingReviewed: "Mark Reviewed",
-      findingStatusReview: "Review",
-      assessmentLabels: {
-        supported: "Supported",
-        partially_supported: "Partially supported",
-        contradicted: "Contradicted",
-        insufficient_basis: "Insufficient basis",
-      },
-      reviewTemplateOptions: {
-        inheritance: "Greek inheritance law",
-      },
-      draftTitle: "Structured decision draft",
-      draftDescription: "The AI-assisted draft is organized into the required five sections and exposes paragraph-level rationale, confidence, and inline source annotations.",
-      approveDraft: "Approve draft",
-      exportDocx: "Export DOCX",
-      reviewBeforeApproval: "Run the legal consistency review before approval.",
-      resolveReviewBlockers: "Resolve the pre-signature review blockers before approval.",
-      approvalGateHint: "Approval now depends on the quality review confirming that the draft is ready for signature.",
-      autoApproveLabel: "Auto-approve all drafts",
-      autoApproveDescription: "Bypass quality thresholds and allow immediate approval and DOCX export.",
-      version: "Version",
-      markReviewed: "Mark reviewed",
-      approveSection: "Approve section",
-      paragraph: "Paragraph",
-      confidence: "Confidence",
-      rationale: "AI rationale",
-      reviewStatus: "Review status",
-      saveParagraph: "Save paragraph",
-      annotationsTitle: "Evidence and law annotations",
-      traceTitle: "Evidence-to-reasoning trace",
-      reasoningTraceTitle: "Reasoning basis",
-      evidenceTraceTitle: "Supporting evidence and law",
-      rationaleMissing: "No reasoning note has been recorded for this paragraph yet.",
-      traceEmpty: "No supporting evidence or legal annotation is linked to this paragraph yet.",
-      emptyDraft: "No draft exists for this matter yet. Upload the relevant material, then generate the structured decision draft.",
-      timelineTitle: "Case timeline",
-      timelineDescription: "All uploads, generation events, edits, approvals, and exports are tracked for auditability.",
-      emptyTimeline: "No activity has been recorded yet for this case.",
-      documentTypes: {
-        pleading: "Pleading",
-        evidence: "Evidence",
-        supporting: "Supporting",
-        reference: "Reference",
-        decision: "Decision",
-        other: "Other",
-      },
-      reviewOptions: {
-        draft: "Draft",
-        reviewed: "Reviewed",
-        approved: "Approved",
-      },
-    },
-    admin: {
-      restrictedTitle: "Administration",
-      restrictedDescription: "This area is restricted to administrators.",
-      restrictedMessage: "You are signed in as a judge. Administrative controls for users and AI provider configuration are hidden and protected.",
-      providerTitle: "AI provider configuration",
-      providerDescription: "Configure the model provider, endpoint, and credentials without changing code.",
-      configurationName: "Configuration name",
-      providerType: "Provider type",
-      modelDeployment: "Model / deployment",
-      endpoint: "Endpoint",
-      apiKey: "API key",
-      azureApiVersion: "Azure API version",
-      draftTemperature: "Draft temperature",
-      maxTokens: "Max tokens per response",
-      systemPrompt: "Default system prompt",
-      saveProvider: "Save provider",
-      testProvider: "Test connectivity",
-      testProviderSuccess: "Connection successful",
-      testProviderFail: "Connection failed",
-      configuredProvidersTitle: "Configured providers",
-      configuredProvidersDescription: "One provider can be marked active for case drafting operations.",
-      active: "active",
-      ocrTitle: "OCR Configuration",
-      ocrDescription: "Optical Character Recognition for scanned documents and images. Tesseract runs locally — no cloud dependency.",
-      ocrEnabled: "Enable OCR",
-      ocrProvider: "OCR provider",
-      ocrLanguage: "Recognition language",
-      ocrTest: "Test OCR",
-      ocrTestDescription: "Upload an image or scanned page to test recognition quality.",
-      ocrTestResult: "Recognized text",
-      ocrTestNoResult: "No text recognized.",
-      makeActive: "Make active",
-      editProvider: "Edit",
-      noProviders: "No AI providers configured yet.",
-      userManagementTitle: "User and role management",
-      userManagementDescription: "Judge and admin distinctions are visible in the interface and enforced through protected routes and procedures.",
-      unnamedUser: "Unnamed user",
-      toggleRole: "Toggle role",
-      suspend: "Suspend",
-      reactivate: "Reactivate",
-      noUsers: "No user accounts available.",
-      providerOptions: {
-        openai: "OpenAI",
-        azure_openai: "Azure OpenAI",
-        custom_openai_compatible: "Custom compatible",
-        alibaba_cloud: "Alibaba Cloud (Singapore)",
-        kimi: "Kimi (Moonshot)",
-        deepseek: "DeepSeek",
-      },
-      dataTabLabel: "Data",
-      dataTitle: "Data management",
-      dataDescription: "Destructive operations. Used when decommissioning a workspace, rotating provider credentials, or preparing a fresh demo environment.",
-      resetFactoryTitle: "Factory reset",
-      resetFactoryDescription: "Wipes every case, draft, document, knowledge entry, provider configuration, and user preference. Sessions for other users are revoked. Seeded providers reappear on next start.",
-      resetFactoryAction: "Run factory reset",
-      resetProgramTitle: "Erase program data only",
-      resetProgramDescription: "Clears cases, drafts, documents, knowledge base, and audit logs. Provider settings, thresholds, and preferences remain intact.",
-      resetProgramAction: "Erase program data",
-      resetSettingsTitle: "Clear settings only",
-      resetSettingsDescription: "Removes configured AI providers, review thresholds, and user auto-approve flags. Cases and knowledge base are untouched.",
-      resetSettingsAction: "Clear settings",
-      resetConfirmTitle: "Confirm destructive action",
-      resetConfirmBody: "This cannot be undone. Type RESET below to confirm.",
-      resetConfirmType: "Type RESET to confirm",
-      resetConfirmCancel: "Cancel",
-      resetConfirmRun: "Run reset",
-    },
-    shortcuts: {
-      helpTitle: "Keyboard shortcuts",
-      helpDescription: "Quick navigation without leaving the keyboard.",
-      entries: [
-        ["g o", "Go to Overview"],
-        ["g c", "Go to Cases"],
-        ["g k", "Go to Knowledge base"],
-        ["g a", "Go to Administration (admin only)"],
-        ["n", "Start a new case"],
-        ["?", "Open this shortcut list"],
-        ["Esc", "Close dialogs"],
-      ] as Array<readonly [string, string]>,
-      close: "Close",
-    },
-    common: {
-      selectedFile: "Selected file",
-      selectedFiles: "Selected files",
-    },
-  },
-  el: {
-    cases: {
-      createTitle: "Δημιουργία υπόθεσης",
-      createDescription: "Καταχωρίστε μια δικαστική υπόθεση με τα μεταδεδομένα που απαιτούνται για έγγραφα, αναζήτηση και ροές σύνταξης.",
-      registryTitle: "Μητρώο υποθέσεων",
-      registryDescription: "Επιλέξτε μια υπόθεση για μεταφόρτωση εγγράφων, αναζήτηση πηγών και σύνταξη απόφασης.",
-      caseNumber: "Αριθμός υπόθεσης",
-      jurisdictionCode: "Κωδικός δικαιοδοσίας",
-      courtLevel: "Βαθμός δικαστηρίου",
-      caseType: "Τύπος υπόθεσης",
-      caseTitle: "Τίτλος υπόθεσης",
-      summary: "Σύνοψη",
-      languageCode: "Γλώσσα σύνταξης",
-      createAction: "Δημιουργία υπόθεσης",
-      noMatters: "Δεν υπάρχουν ακόμη διαθέσιμες υποθέσεις.",
-      editTitle: "Επεξεργασία υπόθεσης",
-      editAction: "Αποθήκευση αλλαγών",
-      deleteAction: "Διαγραφή",
-      deleteConfirmTitle: "Διαγραφή υπόθεσης",
-      deleteConfirmBody: "Αυτό θα αφαιρέσει οριστικά την υπόθεση και όλα τα συσχετιζόμενα έγγραφα, σχέδια και ελέγχους. Δεν μπορεί να αναιρεθεί.",
-      deleteConfirmCancel: "Ακύρωση",
-      deleteConfirmRun: "Διαγραφή υπόθεσης",
-    },
-    knowledge: {
-      uploadTitle: "Μεταφόρτωση νομικού υλικού",
-      uploadDescription: "Προσθέστε νόμους, κανονισμούς, νομολογία και έγγραφα αναφοράς στο μόνιμο αναζητήσιμο νομικό αποθετήριο.",
-      titleLabel: "Τίτλος",
-      documentType: "Τύπος εγγράφου",
-      jurisdictionCode: "Κωδικός δικαιοδοσίας",
-      courtLevel: "Βαθμός δικαστηρίου",
-      citation: "Παραπομπή",
-      sourceReference: "Αναφορά πηγής",
-      fileLabel: "Έγγραφο γνώσης",
-      uploadAction: "Μεταφόρτωση υλικού",
-      batchTitle: "Μαζική εισαγωγή νομικού αποθετηρίου",
-      batchDescription: "Μεταφορτώστε πολλά αρχεία μαζί. Το Judge AI θα εξετάσει κάθε αρχείο, θα εκτιμήσει την πιθανότερη κατηγορία νομικού υλικού και θα καταγράψει αυτόματα τα διπλότυπα.",
-      batchFileLabel: "Αρχεία γνώσης για μαζική εισαγωγή",
-      batchAction: "Εκτέλεση μαζικής εισαγωγής",
-      batchHint: "Ιδανικό για πακέτα νομοθεσίας, φακέλους νομολογίας και μικτά νομικά αρχεία που παραδίδονται μαζί.",
-      repositoryTitle: "Μόνιμο νομικό αποθετήριο",
-      repositoryDescription: "Αυτά τα έγγραφα παραμένουν διαθέσιμα σε όλες τις υποθέσεις και μπορούν να εμφανίζονται κατά τη σύνταξη και την αναζήτηση.",
-      emptyRepository: "Το νομικό αποθετήριο είναι κενό.",
-      documentTypes: {
-        statute: "Νόμος",
-        regulation: "Κανονισμός",
-        precedent: "Νομολογία",
-        reference: "Αναφορά",
-        other: "Άλλο",
-      },
-    },
-    workspace: {
-      loading: "Φόρτωση χώρου υπόθεσης",
-      notLoadedTitle: "Χώρος υπόθεσης",
-      notLoadedDescription: "Δεν ήταν δυνατή η φόρτωση της ζητούμενης υπόθεσης.",
-      notLoadedMessage: "Η υπόθεση ίσως δεν υπάρχει ή δεν έχετε δικαίωμα πρόσβασης.",
-      generateAction: "Παραγωγή σχεδίου απόφασης",
-      generationProgress: {
-        analyzing: "Ανάλυση εγγράφων υπόθεσης...",
-        reviewing: "Ανασκόπηση νομικών αρχών...",
-        structuring: "Δομήση τμημάτων απόφασης...",
-        generating: "Δημιουργία αιτιολογιών παραγράφων...",
-        finalizing: "Οριστικοποίηση σχεδίου...",
-        almostThere: "Σχεδόν έτοιμο...",
-        elapsed: "Διάρκεια",
-        seconds: "δ",
-      },
-      status: "Κατάσταση",
-      caseType: "Τύπος υπόθεσης",
-      assignedJudge: "Ανατεθειμένος δικαστής",
-      unassigned: "Χωρίς ανάθεση",
-      created: "Δημιουργήθηκε",
-      searchTitle: "Αναζήτηση στο αρχείο της υπόθεσης",
-      searchDescription: "Εντοπίστε σχετικά αποσπάσματα από τον φάκελο και τη βάση γνώσης κατά τη σύνταξη.",
-      searchPlaceholder: "Αναζήτηση σε νομοθεσία, νομολογία, αποδείξεις ή αναφορές",
-      searchHint: "Πληκτρολογήστε τουλάχιστον δύο χαρακτήρες για αναζήτηση στο ευρετηριασμένο υλικό της υπόθεσης.",
-      uploadTitle: "Μεταφόρτωση υλικού υπόθεσης",
-      uploadDescription: "Δικόγραφα, αποδεικτικά στοιχεία και υποστηρικτικά έγγραφα επικυρώνονται, κατακερματίζονται, ευρετηριάζονται και ελέγχονται για διπλότυπα κατά τη μεταφόρτωση.",
-      documentTitle: "Τίτλος εγγράφου",
-      documentType: "Τύπος εγγράφου",
-      fileLabel: "Έγγραφο υπόθεσης",
-      uploadAction: "Μεταφόρτωση εγγράφου υπόθεσης",
-      batchTitle: "Μαζική εισαγωγή φακέλου υπόθεσης",
-      batchDescription: "Ρίξτε πολλά αρχεία σε μία ενέργεια. Το Judge AI θα εκτιμήσει αν κάθε αρχείο είναι δικόγραφο, αποδεικτικό, υποστηρικτικό παράρτημα, αναφορά ή προηγούμενη απόφαση.",
-      batchFileLabel: "Αρχεία υπόθεσης για μαζική εισαγωγή",
-      batchAction: "Εισαγωγή και κατηγοριοποίηση αρχείων",
-      batchHint: "Χρησιμοποιήστε αυτή τη ροή όταν ο δικηγόρος ή ο γραμματέας στέλνει μαζί πολλά αποδεικτικά και δικόγραφα.",
-      documentsTitle: "Έγγραφα υπόθεσης",
-      documentsDescription: "Οι μεταφορτώσεις εγγράφων διατηρούν κατάσταση επεξεργασίας και ελέγχου διπλοτύπων, στηρίζοντας ελεγχόμενη αποδεικτική ροή.",
-      emptyDocuments: "Δεν έχουν μεταφορτωθεί ακόμη έγγραφα υπόθεσης.",
-      caseCheckTitle: "Έλεγχος απόφασης και νομικής συνέπειας",
-      caseCheckDescription: "Συγκρίνετε την προτεινόμενη απόφαση ή το τρέχον σχέδιο με τον φάκελο, το εφαρμοστέο δίκαιο και το υλικό της βάσης γνώσης για να εντοπίσετε αντιφάσεις, αποδεικτικά κενά και αδυναμίες αιτιολογίας.",
-      caseCheckInputLabel: "Κείμενο απόφασης προς έλεγχο",
-      caseCheckPlaceholder: "Επικολλήστε απόφαση ή αιτιολογία ή αφήστε το πεδίο κενό για έλεγχο του τελευταίου παραγόμενου σχεδίου.",
-      caseCheckHint: "Αν αφήσετε το κείμενο κενό, το Judge AI θα αναλύσει το τελευταίο σχέδιο που είναι ήδη αποθηκευμένο για αυτή την υπόθεση.",
-      caseCheckQuickActions: "Γρήγορες ενέργειες",
-      useLatestDraft: "Χρήση τελευταίου σχεδίου",
-      useReasoningOnly: "Χρήση ενότητας αιτιολογίας",
-      clearReviewText: "Καθαρισμός κειμένου",
-      reviewTemplateTitle: "Πρότυπο ελέγχου",
-      reviewTemplateDescription: "Επιλέξτε το κατάλληλο πρίσμα ελέγχου για την υπόθεση. Τα πρότυπα αλλάζουν τη λίστα νομικών ελέγχων που χρησιμοποιεί το Judge AI.",
-      reviewTemplateLabel: "Τύπος προτύπου",
-      reviewTemplateFocusLabel: "Πρόσθετη εστίαση ελέγχου",
-      reviewTemplateFocusPlaceholder: "Προαιρετικό: προσθέστε ειδικά σημεία προς έλεγχο, όπως αναλογικότητα, αξιοπιστία μαρτύρων, αποζημίωση ή δικονομική δικαιοσύνη.",
-      caseCheckAction: "Εκτέλεση ελέγχου νομικής συνέπειας",
-      caseCheckSummary: "Σύνοψη ελέγχου",
-      caseCheckFindings: "Κύρια ευρήματα",
-      caseCheckIssues: "Βασικά ζητήματα και νομικά ερωτήματα",
-      caseCheckMissingEvidence: "Πιθανά αποδεικτικά κενά",
-      caseCheckMissingLaw: "Πιθανά νομικά κενά",
-      caseCheckFeedback: "Παρατηρήσεις προς τον δικαστή",
-      caseCheckCitations: "Έλεγχος παραπομπών και πηγών",
-      caseCheckCredibility: "Ενδείξεις αξιοπιστίας αποδείξεων",
-      caseCheckContradictions: "Αντιφάσεις και συγκρούσεις",
-      caseCheckPrecedent: "Υποστήριξη και διάκριση νομολογίας",
-      caseCheckRatio: "Ratio decidendi",
-      caseCheckObiter: "Obiter dicta",
-      caseCheckJurisdiction: "Δικαιοδοσία και παραδεκτό",
-      caseCheckProportionality: "Αναλογικότητα θεραπείας ή κύρωσης",
-      caseCheckDecisionQuality: "Βαθμολογία ποιότητας απόφασης",
-      caseCheckPreSignature: "Τελικός έλεγχος πριν την υπογραφή",
-      caseCheckBlockers: "Εμπόδια για υπογραφή",
-      caseCheckRecommendedActions: "Συνιστώμενες ενέργειες πριν την υπογραφή",
-      qualityScoreLabel: "Βαθμολογία ποιότητας",
-      readyForSignature: "Έτοιμο για υπογραφή",
-      notReadyForSignature: "Δεν είναι έτοιμο για υπογραφή",
-      caseCheckNoItems: "Δεν εντοπίστηκαν ειδικά στοιχεία σε αυτή την ενότητα.",
-      caseCheckEmpty: "Δεν έχει παραχθεί ακόμη έλεγχος. Εκτελέστε τον ελεγκτή για να δείτε αν η προτεινόμενη απόφαση στηρίζεται στο δίκαιο και στις αποδείξεις.",
-      reviewActionRequired: "Απαιτείται ενέργεια: ελέγξτε τα ευρήματα παρακάτω και ενημερώστε το σχέδιο πριν την έγκριση.",
-      goToDraftFixIssues: "Μετάβαση στο Σχέδιο & Διόρθωση",
-      reRunReview: "Επανάληψη Ελέγχου Συνέπειας",
-      viewDraft: "Προβολή σχεδίου",
-      newGeneration: "Νέα παραγωγή",
-      exportReviewDocx: "Εξαγωγή DOCX",
-      exportReviewPdf: "Εξαγωγή PDF",
-      markFindingReviewed: "Σήμανση ως ελεγμένο",
-      findingStatusReview: "Έλεγχος",
-      assessmentLabels: {
-        supported: "Στηρίζεται",
-        partially_supported: "Στηρίζεται εν μέρει",
-        contradicted: "Αντικρούεται",
-        insufficient_basis: "Ανεπαρκής βάση",
-      },
-      reviewTemplateOptions: {
-        inheritance: "Κληρονομικό δίκαιο",
-      },
-      draftTitle: "Δομημένο σχέδιο απόφασης",
-      draftDescription: "Το σχέδιο με υποστήριξη AI οργανώνεται στις πέντε απαιτούμενες ενότητες και εμφανίζει αιτιολόγηση, βαθμό βεβαιότητας και εσωτερικές παραπομπές ανά παράγραφο.",
-      approveDraft: "Έγκριση σχεδίου",
-      exportDocx: "Εξαγωγή DOCX",
-      reviewBeforeApproval: "Εκτελέστε τον έλεγχο νομικής συνέπειας πριν από την έγκριση.",
-      resolveReviewBlockers: "Επιλύστε τα εμπόδια του τελικού ελέγχου πριν από την έγκριση.",
-      approvalGateHint: "Η έγκριση εξαρτάται πλέον από τον έλεγχο ποιότητας που επιβεβαιώνει ότι το σχέδιο είναι έτοιμο για υπογραφή.",
-      autoApproveLabel: "Αυτόματη έγκριση όλων των σχεδίων",
-      autoApproveDescription: "Παράκαμψη ορίων ποιότητας και άμεση έγκριση και εξαγωγή DOCX.",
-      version: "Έκδοση",
-      markReviewed: "Σήμανση ως ελεγμένο",
-      approveSection: "Έγκριση ενότητας",
-      paragraph: "Παράγραφος",
-      confidence: "Βεβαιότητα",
-      rationale: "Αιτιολόγηση AI",
-      reviewStatus: "Κατάσταση ελέγχου",
-      saveParagraph: "Αποθήκευση παραγράφου",
-      annotationsTitle: "Παραπομπές σε αποδείξεις και δίκαιο",
-      traceTitle: "Ίχνος αποδείξεων προς αιτιολογία",
-      reasoningTraceTitle: "Βάση αιτιολογίας",
-      evidenceTraceTitle: "Υποστηρικτικές αποδείξεις και δίκαιο",
-      rationaleMissing: "Δεν έχει καταγραφεί ακόμη σημείωμα αιτιολογίας για αυτή την παράγραφο.",
-      traceEmpty: "Δεν έχει συνδεθεί ακόμη υποστηρικτικό αποδεικτικό ή νομική παραπομπή με αυτή την παράγραφο.",
-      emptyDraft: "Δεν υπάρχει ακόμη σχέδιο για αυτή την υπόθεση. Μεταφορτώστε το σχετικό υλικό και έπειτα δημιουργήστε το δομημένο σχέδιο απόφασης.",
-      timelineTitle: "Χρονολόγιο υπόθεσης",
-      timelineDescription: "Όλες οι μεταφορτώσεις, οι ενέργειες παραγωγής, οι επεξεργασίες, οι εγκρίσεις και οι εξαγωγές καταγράφονται για ελεγκτική ιχνηλασιμότητα.",
-      emptyTimeline: "Δεν έχει καταγραφεί ακόμη δραστηριότητα για αυτή την υπόθεση.",
-      documentTypes: {
-        pleading: "Δικόγραφο",
-        evidence: "Αποδεικτικό",
-        supporting: "Υποστηρικτικό",
-        reference: "Αναφορά",
-        decision: "Απόφαση",
-        other: "Άλλο",
-      },
-      reviewOptions: {
-        draft: "Πρόχειρο",
-        reviewed: "Ελεγμένο",
-        approved: "Εγκεκριμένο",
-      },
-    },
-    admin: {
-      restrictedTitle: "Διαχείριση",
-      restrictedDescription: "Αυτή η περιοχή είναι διαθέσιμη μόνο σε διαχειριστές.",
-      restrictedMessage: "Έχετε συνδεθεί ως δικαστής. Τα διοικητικά εργαλεία για χρήστες και ρυθμίσεις παρόχου AI είναι κρυφά και προστατευμένα.",
-      providerTitle: "Ρύθμιση παρόχου AI",
-      providerDescription: "Ρυθμίστε τον πάροχο μοντέλου, το endpoint και τα διαπιστευτήρια χωρίς αλλαγές κώδικα.",
-      configurationName: "Όνομα ρύθμισης",
-      providerType: "Τύπος παρόχου",
-      modelDeployment: "Μοντέλο / ανάπτυξη",
-      endpoint: "Endpoint",
-      apiKey: "Κλειδί API",
-      azureApiVersion: "Έκδοση Azure API",
-      draftTemperature: "Θερμοκρασία σχεδίου",
-      maxTokens: "Μέγιστα tokens ανά απάντηση",
-      systemPrompt: "Προεπιλεγμένο system prompt",
-      saveProvider: "Αποθήκευση παρόχου",
-      testProvider: "Δοκιμή σύνδεσης",
-      testProviderSuccess: "Σύνδεση επιτυχής",
-      testProviderFail: "Αποτυχία σύνδεσης",
-      configuredProvidersTitle: "Ρυθμισμένοι πάροχοι",
-      configuredProvidersDescription: "Ένας πάροχος μπορεί να οριστεί ενεργός για λειτουργίες σύνταξης.",
-      active: "ενεργός",
-      ocrTitle: "Ρύθμιση OCR",
-      ocrDescription: "Οπτική Αναγνώριση Χαρακτήρων για σαρωμένα έγγραφα και εικόνες. Το Tesseract εκτελείται τοπικά — χωρίς εξάρτηση από το cloud.",
-      ocrEnabled: "Ενεργοποίηση OCR",
-      ocrProvider: "Πάροχος OCR",
-      ocrLanguage: "Γλώσσα αναγνώρισης",
-      ocrTest: "Δοκιμή OCR",
-      ocrTestDescription: "Μεταφορτώστε μια εικόνα ή σαρωμένη σελίδα για να δοκιμάσετε την ποιότητα αναγνώρισης.",
-      ocrTestResult: "Αναγνωρισμένο κείμενο",
-      ocrTestNoResult: "Δεν αναγνωρίστηκε κείμενο.",
-      makeActive: "Ορισμός ως ενεργού",
-      editProvider: "Επεξεργασία",
-      noProviders: "Δεν έχουν ρυθμιστεί ακόμη πάροχοι AI.",
-      userManagementTitle: "Διαχείριση χρηστών και ρόλων",
-      userManagementDescription: "Οι διακρίσεις μεταξύ δικαστή και διαχειριστή είναι ορατές στο περιβάλλον και επιβάλλονται μέσω προστατευμένων διαδρομών και διαδικασιών.",
-      unnamedUser: "Χρήστης χωρίς όνομα",
-      toggleRole: "Αλλαγή ρόλου",
-      suspend: "Αναστολή",
-      reactivate: "Επανενεργοποίηση",
-      noUsers: "Δεν υπάρχουν διαθέσιμοι λογαριασμοί χρηστών.",
-      providerOptions: {
-        openai: "OpenAI",
-        azure_openai: "Azure OpenAI",
-        custom_openai_compatible: "Συμβατός προσαρμοσμένος",
-        alibaba_cloud: "Alibaba Cloud (Σιγκαπούρη)",
-        kimi: "Kimi (Moonshot)",
-        deepseek: "DeepSeek",
-      },
-      dataTabLabel: "Δεδομένα",
-      dataTitle: "Διαχείριση δεδομένων",
-      dataDescription: "Μη αναστρέψιμες ενέργειες. Χρησιμοποιήστε τις κατά τον παροπλισμό, την εναλλαγή διαπιστευτηρίων ή την προετοιμασία νέου περιβάλλοντος επίδειξης.",
-      resetFactoryTitle: "Εργοστασιακή επαναφορά",
-      resetFactoryDescription: "Διαγράφει κάθε υπόθεση, σχέδιο, έγγραφο, καταχώριση γνώσης, ρύθμιση παρόχου και προτίμηση χρήστη. Οι άλλες συνεδρίες ακυρώνονται. Οι προκαθορισμένοι πάροχοι ξαναδημιουργούνται στην επόμενη εκκίνηση.",
-      resetFactoryAction: "Εκτέλεση εργοστασιακής επαναφοράς",
-      resetProgramTitle: "Διαγραφή μόνο δεδομένων προγράμματος",
-      resetProgramDescription: "Καθαρίζει υποθέσεις, σχέδια, έγγραφα, νομική βάση γνώσης και αρχεία καταγραφής. Ρυθμίσεις παρόχων, όρια και προτιμήσεις διατηρούνται.",
-      resetProgramAction: "Διαγραφή δεδομένων προγράμματος",
-      resetSettingsTitle: "Εκκαθάριση μόνο ρυθμίσεων",
-      resetSettingsDescription: "Αφαιρεί τους διαμορφωμένους παρόχους AI, τα όρια ελέγχου και την αυτόματη έγκριση χρηστών. Υποθέσεις και νομική βάση γνώσης δεν επηρεάζονται.",
-      resetSettingsAction: "Εκκαθάριση ρυθμίσεων",
-      resetConfirmTitle: "Επιβεβαίωση μη αναστρέψιμης ενέργειας",
-      resetConfirmBody: "Αυτή η ενέργεια δεν αναιρείται. Πληκτρολογήστε RESET για επιβεβαίωση.",
-      resetConfirmType: "Πληκτρολογήστε RESET για επιβεβαίωση",
-      resetConfirmCancel: "Ακύρωση",
-      resetConfirmRun: "Εκτέλεση επαναφοράς",
-    },
-    shortcuts: {
-      helpTitle: "Συντομεύσεις πληκτρολογίου",
-      helpDescription: "Γρήγορη πλοήγηση χωρίς ποντίκι.",
-      entries: [
-        ["g o", "Μετάβαση στην Επισκόπηση"],
-        ["g c", "Μετάβαση στις Υποθέσεις"],
-        ["g k", "Μετάβαση στη Βάση Γνώσης"],
-        ["g a", "Μετάβαση στη Διαχείριση (μόνο admin)"],
-        ["n", "Δημιουργία νέας υπόθεσης"],
-        ["?", "Άνοιγμα λίστας συντομεύσεων"],
-        ["Esc", "Κλείσιμο διαλόγων"],
-      ] as Array<readonly [string, string]>,
-      close: "Κλείσιμο",
-    },
-    common: {
-      selectedFile: "Επιλεγμένο αρχείο",
-      selectedFiles: "Επιλεγμένα αρχεία",
-    },
-  },
-} as const;
-
-const runtimeCopy = {
-  en: {
-    toast: {
-      draftStarted: "Draft generation started",
-      draftGenerated: "Structured draft generated",
-      draftFailed: "Draft generation failed",
-      draftCancelled: "Draft generation cancelled",
-      caseCreated: "Case created",
-      caseUpdated: "Case updated",
-      caseDeleted: "Case deleted",
-      knowledgeDuplicate: "Duplicate legal material recorded",
-      knowledgeUploaded: "Knowledge document uploaded",
-      caseDocumentDuplicate: "Duplicate case document detected",
-      caseDocumentUploaded: "Case document uploaded",
-      batchImportCompleted: (imported: number, duplicates: number) => `Batch import completed: ${imported} imported, ${duplicates} duplicates`,
-      reviewCompleted: "Legal consistency review completed",
-      paragraphSaved: "Paragraph saved",
-      sectionStatusUpdated: "Section review status updated",
-      draftApproved: "Draft approved",
-      docxExportCreated: "DOCX export created",
-      downloadLinkFailed: "Failed to retrieve download link",
-      thresholdSaved: "Approval threshold saved",
-      autoApproveEnabled: "Auto-approve enabled",
-      autoApproveDisabled: "Auto-approve disabled",
-      reviewReportExported: "Review report exported",
-      signedPdfExported: "Signed PDF review report exported",
-      providerSaved: "AI provider settings saved",
-      activeProviderUpdated: "Active AI provider updated",
-      settingsSaved: "Settings saved",
-      ocrTestSuccess: "OCR test completed",
-      userUpdated: "User updated",
-      chooseKnowledgeFile: "Choose a knowledge-base file to upload",
-      chooseCaseFile: "Choose a case document to upload",
-      chooseKnowledgeFiles: "Choose one or more knowledge files to import",
-      chooseCaseFiles: "Choose one or more case files to import",
-      uploadFailed: "Upload failed",
-      batchUploadFailed: "Batch upload failed",
-      batchImportFailed: "Batch import failed",
-      noCasesToExport: "No matters to export",
-    },
-    labels: {
-      ready: "Ready",
-      review: "Review",
-      needed: "Needed",
-      next: "Next",
-      snapshot: "Snapshot",
-      draft: "Draft",
-      manual: "manual",
-      quality: "Quality",
-      blocked: "Blocked",
-      openReview: "Open review",
-      comparePrevious: "Compare previous",
-      docxReport: "DOCX report",
-      signedPdf: "Signed PDF",
-      savedReviewFallback: "Saved judicial-quality review.",
-      savedReviewHistory: "Saved review history",
-      savedReviewHistoryDescription: "Each legal-consistency review is stored by draft version so judges can reopen prior findings, compare successive reviews side by side, and export formal reports in DOCX or signed PDF.",
-      savedReviewEmpty: "Run the legal consistency review to start building a saved history for this matter.",
-      reviewDiffTitle: "Successive review diff",
-      reviewDiffDescription: "Compare the currently opened saved review with an earlier snapshot to see how quality score, blockers, findings, and reasoning gaps changed across draft versions.",
-      currentReview: "Current review",
-      compareAgainst: "Compare against",
-      currentSnapshot: "Current snapshot",
-      baselineSnapshot: "Baseline snapshot",
-      currentFindings: "Current findings",
-      currentFindingsDescription: "Highlighted rows show what is new or what changed compared with the baseline review.",
-      baselineFindings: "Baseline findings",
-      baselineFindingsDescription: "Resolved rows are highlighted so judges can see which earlier concerns no longer appear in the current review.",
-      noCurrentFindings: "No findings were captured in the current saved review.",
-      noBaselineFindings: "No findings were captured in the baseline saved review.",
-      currentReviewMissing: "Current saved review summary unavailable.",
-      baselineReviewMissing: "Baseline saved review summary unavailable.",
-      qualityDelta: "Quality delta",
-      addedBlockers: "Added blockers",
-      resolvedBlockers: "Resolved blockers",
-      findingChanges: "Finding changes",
-      newlyIntroduced: "Newly introduced since baseline",
-      resolvedSinceBaseline: "Resolved since baseline",
-      blockerPrefix: "Blocker",
-      findingPrefix: "Finding",
-      missingEvidencePrefix: "Missing evidence",
-      missingLawPrefix: "Missing law",
-      issuePrefix: "Issue",
-      noNewReviewChanges: "No new blockers, findings, or reasoning gaps were introduced in the selected review.",
-      noResolvedReviewChanges: "No blockers, findings, or legal-analysis gaps were resolved between these two saved reviews.",
-      actionPrefix: "Action",
-      approvalThreshold: "Approval threshold",
-      approvalThresholdDescription: "Configure the review score and blocker tolerance that an inheritance-law draft must satisfy before final approval is allowed.",
-      approvalThresholdLoading: "Approval threshold is loading or has not been initialized yet.",
-      greekInheritanceLaw: "Greek inheritance law",
-      greekInheritanceLawDescription: "Applied whenever a saved review is used to approve an inheritance-law draft.",
-      judgeRule: "Judge rule",
-      minimumQualityScore: "Minimum quality score",
-      maxMediumSeverityFindings: "Maximum medium-severity findings",
-      maxHighSeverityFindings: "Maximum high-severity findings",
-      requirePreSignatureReadiness: "Require pre-signature readiness",
-      saveThreshold: "Save threshold",
-      new: "New",
-      resolved: "Resolved",
-      changed: "Changed",
-      stable: "Stable",
-      severityChanged: (from: string, to: string) => `Severity ${from} -> ${to}`,
-      recommendedActionUpdated: "Recommended action updated",
-      newFinding: "New finding",
-      resolvedOrRemoved: "Resolved or removed",
-      reviewReportDocx: "Review report DOCX",
-      reviewReportPdf: "Review report PDF",
-      signedReviewPdf: "Signed review PDF",
-      userPrefix: "User",
-    },
-    status: {
-      created: "Created",
-      document_review: "Document review",
-      drafting: "Drafting",
-      under_review: "Under review",
-      approved: "Approved",
-      archived: "Archived",
-      system_generated: "System generated",
-      judge_edited: "Judge edited",
-      reviewed: "Reviewed",
-      draft: "Draft",
-      ai: "AI",
-      manual: "Manual",
-      hybrid: "Hybrid",
-      processed: "Processed",
-      uploaded: "Uploaded",
-      failed: "Failed",
-      duplicate: "Duplicate",
-      active: "Active",
-      suspended: "Suspended",
-      admin: "Admin",
-      judge: "Judge",
-      supported: "Supported",
-      partially_supported: "Partially supported",
-      contradicted: "Contradicted",
-      insufficient_basis: "Insufficient basis",
-      strong: "Strong",
-      adequate: "Adequate",
-      weak: "Weak",
-      incomplete: "Incomplete",
-      ready: "Ready",
-      blocked: "Blocked",
-      low: "Low",
-      medium: "Medium",
-      high: "High",
-      critical: "Critical",
-      pleading: "Pleading",
-      evidence: "Evidence",
-      supporting: "Supporting",
-      reference: "Reference",
-      decision: "Decision",
-      other: "Other",
-      statute: "Statute",
-      regulation: "Regulation",
-      precedent: "Precedent",
-      case_document: "Case document",
-      knowledge_document: "Knowledge document",
-      general: "General",
-      inheritance: "Greek inheritance law",
-    },
-    actionTypes: {
-      "case.created": "Case created",
-      "case.status_changed": "Case status changed",
-      "case.archived": "Case archived",
-      "case_document.duplicate_detected": "Duplicate document detected",
-      "case_document.uploaded": "Case document uploaded",
-      "draft.created": "Draft created",
-      "draft.generated": "AI draft generated",
-      "draft.paragraph_updated": "Draft paragraph updated",
-      "draft.section_status_changed": "Draft section status changed",
-      "draft.approved": "Draft approved",
-      "case.review_generated": "Case review generated",
-      "decision.exported": "Decision exported",
-      "case.review_report_exported": "Review report exported",
-      "knowledge_document.batch_uploaded": "Knowledge batch uploaded",
-    },
-  },
-  el: {
-    toast: {
-      draftStarted: "Η παραγωγή σχεδίου ξεκίνησε",
-      draftGenerated: "Το δομημένο σχέδιο δημιουργήθηκε",
-      draftFailed: "Η παραγωγή σχεδίου απέτυχε",
-      draftCancelled: "Η παραγωγή σχεδίου ακυρώθηκε",
-      caseCreated: "Η υπόθεση δημιουργήθηκε",
-      caseUpdated: "Η υπόθεση ενημερώθηκε",
-      caseDeleted: "Η υπόθεση διαγράφηκε",
-      knowledgeDuplicate: "Καταγράφηκε διπλότυπο νομικό υλικό",
-      knowledgeUploaded: "Το έγγραφο γνώσης μεταφορτώθηκε",
-      caseDocumentDuplicate: "Εντοπίστηκε διπλότυπο έγγραφο υπόθεσης",
-      caseDocumentUploaded: "Το έγγραφο υπόθεσης μεταφορτώθηκε",
-      batchImportCompleted: (imported: number, duplicates: number) => `Η μαζική εισαγωγή ολοκληρώθηκε: ${imported} εισήχθησαν, ${duplicates} διπλότυπα`,
-      reviewCompleted: "Ο έλεγχος νομικής συνέπειας ολοκληρώθηκε",
-      paragraphSaved: "Η παράγραφος αποθηκεύτηκε",
-      sectionStatusUpdated: "Η κατάσταση ενότητας ενημερώθηκε",
-      draftApproved: "Το σχέδιο εγκρίθηκε",
-      docxExportCreated: "Η εξαγωγή DOCX δημιουργήθηκε",
-      downloadLinkFailed: "Αποτυχία ανάκτησης συνδέσμου λήψης",
-      thresholdSaved: "Το όριο έγκρισης αποθηκεύτηκε",
-      autoApproveEnabled: "Η αυτόματη έγκριση ενεργοποιήθηκε",
-      autoApproveDisabled: "Η αυτόματη έγκριση απενεργοποιήθηκε",
-      reviewReportExported: "Η έκθεση ελέγχου εξήχθη",
-      signedPdfExported: "Η υπογεγραμμένη έκθεση PDF εξήχθη",
-      providerSaved: "Οι ρυθμίσεις παρόχου AI αποθηκεύτηκαν",
-      activeProviderUpdated: "Ο ενεργός πάροχος AI ενημερώθηκε",
-      settingsSaved: "Οι ρυθμίσεις αποθηκεύτηκαν",
-      ocrTestSuccess: "Η δοκιμή OCR ολοκληρώθηκε",
-      userUpdated: "Ο χρήστης ενημερώθηκε",
-      chooseKnowledgeFile: "Επιλέξτε αρχείο βάσης γνώσης για μεταφόρτωση",
-      chooseCaseFile: "Επιλέξτε έγγραφο υπόθεσης για μεταφόρτωση",
-      chooseKnowledgeFiles: "Επιλέξτε ένα ή περισσότερα αρχεία γνώσης για εισαγωγή",
-      chooseCaseFiles: "Επιλέξτε ένα ή περισσότερα αρχεία υπόθεσης για εισαγωγή",
-      uploadFailed: "Η μεταφόρτωση απέτυχε",
-      batchUploadFailed: "Η μαζική μεταφόρτωση απέτυχε",
-      batchImportFailed: "Η μαζική εισαγωγή απέτυχε",
-      noCasesToExport: "Δεν υπάρχουν υποθέσεις για εξαγωγή",
-    },
-    labels: {
-      ready: "Έτοιμο",
-      review: "Έλεγχος",
-      needed: "Απαιτείται",
-      next: "Επόμενο",
-      snapshot: "Στιγμιότυπο",
-      draft: "Σχέδιο",
-      manual: "χειροκίνητο",
-      quality: "Ποιότητα",
-      blocked: "Με εμπόδια",
-      openReview: "Άνοιγμα ελέγχου",
-      comparePrevious: "Σύγκριση με προηγούμενο",
-      docxReport: "Έκθεση DOCX",
-      signedPdf: "Υπογεγραμμένο PDF",
-      savedReviewFallback: "Αποθηκευμένος έλεγχος δικαστικής ποιότητας.",
-      savedReviewHistory: "Ιστορικό αποθηκευμένων ελέγχων",
-      savedReviewHistoryDescription: "Κάθε έλεγχος νομικής συνέπειας αποθηκεύεται ανά έκδοση σχεδίου, ώστε ο δικαστής να ανοίγει παλαιότερα ευρήματα, να συγκρίνει διαδοχικούς ελέγχους και να εξάγει επίσημες εκθέσεις σε DOCX ή υπογεγραμμένο PDF.",
-      savedReviewEmpty: "Εκτελέστε έλεγχο νομικής συνέπειας για να δημιουργηθεί ιστορικό αποθηκευμένων ελέγχων για την υπόθεση.",
-      reviewDiffTitle: "Σύγκριση διαδοχικών ελέγχων",
-      reviewDiffDescription: "Συγκρίνετε τον ανοιχτό αποθηκευμένο έλεγχο με παλαιότερο στιγμιότυπο για να δείτε αλλαγές στη βαθμολογία ποιότητας, στα εμπόδια, στα ευρήματα και στα κενά αιτιολογίας ανά έκδοση σχεδίου.",
-      currentReview: "Τρέχων έλεγχος",
-      compareAgainst: "Σύγκριση με",
-      currentSnapshot: "Τρέχον στιγμιότυπο",
-      baselineSnapshot: "Βασικό στιγμιότυπο",
-      currentFindings: "Τρέχοντα ευρήματα",
-      currentFindingsDescription: "Οι επισημασμένες σειρές δείχνουν τι είναι νέο ή τι άλλαξε σε σύγκριση με τον βασικό έλεγχο.",
-      baselineFindings: "Ευρήματα βάσης",
-      baselineFindingsDescription: "Οι επιλυμένες σειρές επισημαίνονται ώστε ο δικαστής να βλέπει ποιες προηγούμενες ανησυχίες δεν εμφανίζονται πλέον στον τρέχοντα έλεγχο.",
-      noCurrentFindings: "Δεν καταγράφηκαν ευρήματα στον τρέχοντα αποθηκευμένο έλεγχο.",
-      noBaselineFindings: "Δεν καταγράφηκαν ευρήματα στον βασικό αποθηκευμένο έλεγχο.",
-      currentReviewMissing: "Δεν υπάρχει σύνοψη για τον τρέχοντα αποθηκευμένο έλεγχο.",
-      baselineReviewMissing: "Δεν υπάρχει σύνοψη για τον βασικό αποθηκευμένο έλεγχο.",
-      qualityDelta: "Μεταβολή ποιότητας",
-      addedBlockers: "Νέα εμπόδια",
-      resolvedBlockers: "Επιλυμένα εμπόδια",
-      findingChanges: "Αλλαγές ευρημάτων",
-      newlyIntroduced: "Νέα στοιχεία μετά τη βάση",
-      resolvedSinceBaseline: "Επιλύθηκαν μετά τη βάση",
-      blockerPrefix: "Εμπόδιο",
-      findingPrefix: "Εύρημα",
-      missingEvidencePrefix: "Αποδεικτικό κενό",
-      missingLawPrefix: "Νομικό κενό",
-      issuePrefix: "Ζήτημα",
-      noNewReviewChanges: "Δεν προστέθηκαν νέα εμπόδια, ευρήματα ή κενά αιτιολογίας στον επιλεγμένο έλεγχο.",
-      noResolvedReviewChanges: "Δεν επιλύθηκαν εμπόδια, ευρήματα ή κενά νομικής ανάλυσης μεταξύ αυτών των δύο αποθηκευμένων ελέγχων.",
-      actionPrefix: "Ενέργεια",
-      approvalThreshold: "Όριο έγκρισης",
-      approvalThresholdDescription: "Ρυθμίστε τη βαθμολογία ελέγχου και την ανοχή εμποδίων που πρέπει να πληροί ένα σχέδιο κληρονομικού δικαίου πριν επιτραπεί η τελική έγκριση.",
-      approvalThresholdLoading: "Το όριο έγκρισης φορτώνεται ή δεν έχει αρχικοποιηθεί ακόμη.",
-      greekInheritanceLaw: "Ελληνικό κληρονομικό δίκαιο",
-      greekInheritanceLawDescription: "Εφαρμόζεται όταν ένας αποθηκευμένος έλεγχος χρησιμοποιείται για την έγκριση σχεδίου κληρονομικού δικαίου.",
-      judgeRule: "Κανόνας δικαστή",
-      minimumQualityScore: "Ελάχιστη βαθμολογία ποιότητας",
-      maxMediumSeverityFindings: "Μέγιστος αριθμός ευρημάτων μεσαίας σοβαρότητας",
-      maxHighSeverityFindings: "Μέγιστος αριθμός ευρημάτων υψηλής σοβαρότητας",
-      requirePreSignatureReadiness: "Απαίτηση ετοιμότητας πριν την υπογραφή",
-      saveThreshold: "Αποθήκευση ορίου",
-      new: "Νέο",
-      resolved: "Επιλύθηκε",
-      changed: "Άλλαξε",
-      stable: "Σταθερό",
-      severityChanged: (from: string, to: string) => `Σοβαρότητα ${from} -> ${to}`,
-      recommendedActionUpdated: "Η προτεινόμενη ενέργεια ενημερώθηκε",
-      newFinding: "Νέο εύρημα",
-      resolvedOrRemoved: "Επιλύθηκε ή αφαιρέθηκε",
-      reviewReportDocx: "Έκθεση ελέγχου DOCX",
-      reviewReportPdf: "Έκθεση ελέγχου PDF",
-      signedReviewPdf: "Υπογεγραμμένη έκθεση PDF",
-      userPrefix: "Χρήστης",
-    },
-    status: {
-      created: "Δημιουργήθηκε",
-      document_review: "Έλεγχος εγγράφων",
-      drafting: "Σύνταξη",
-      under_review: "Υπό έλεγχο",
-      approved: "Εγκρίθηκε",
-      archived: "Αρχειοθετήθηκε",
-      system_generated: "Παραγωγή συστήματος",
-      judge_edited: "Επεξεργασία δικαστή",
-      reviewed: "Ελεγμένο",
-      draft: "Προσχέδιο",
-      ai: "AI",
-      manual: "Χειροκίνητο",
-      hybrid: "Υβριδικό",
-      processed: "Επεξεργάστηκε",
-      uploaded: "Μεταφορτώθηκε",
-      failed: "Απέτυχε",
-      duplicate: "Διπλότυπο",
-      active: "Ενεργός",
-      suspended: "Σε αναστολή",
-      admin: "Διαχειριστής",
-      judge: "Δικαστής",
-      supported: "Στηρίζεται",
-      partially_supported: "Στηρίζεται εν μέρει",
-      contradicted: "Αντικρούεται",
-      insufficient_basis: "Ανεπαρκής βάση",
-      strong: "Ισχυρό",
-      adequate: "Επαρκές",
-      weak: "Αδύναμο",
-      incomplete: "Ελλιπές",
-      ready: "Έτοιμο",
-      blocked: "Με εμπόδια",
-      low: "Χαμηλή",
-      medium: "Μεσαία",
-      high: "Υψηλή",
-      critical: "Κρίσιμη",
-      pleading: "Δικόγραφο",
-      evidence: "Αποδεικτικό",
-      supporting: "Υποστηρικτικό",
-      reference: "Αναφορά",
-      decision: "Απόφαση",
-      other: "Άλλο",
-      statute: "Νόμος",
-      regulation: "Κανονισμός",
-      precedent: "Νομολογία",
-      case_document: "Έγγραφο υπόθεσης",
-      knowledge_document: "Έγγραφο γνώσης",
-      general: "Γενικός",
-      inheritance: "Ελληνικό κληρονομικό δίκαιο",
-    },
-    actionTypes: {
-      "case.created": "Δημιουργία υπόθεσης",
-      "case.status_changed": "Αλλαγή κατάστασης υπόθεσης",
-      "case.archived": "Αρχειοθέτηση υπόθεσης",
-      "case_document.duplicate_detected": "Εντοπισμός διπλότυπου εγγράφου",
-      "case_document.uploaded": "Μεταφόρτωση εγγράφου υπόθεσης",
-      "draft.created": "Δημιουργία σχεδίου",
-      "draft.generated": "Παραγωγή σχεδίου AI",
-      "draft.paragraph_updated": "Ενημέρωση παραγράφου σχεδίου",
-      "draft.section_status_changed": "Αλλαγή κατάστασης ενότητας σχεδίου",
-      "draft.approved": "Έγκριση σχεδίου",
-      "case.review_generated": "Παραγωγή ελέγχου υπόθεσης",
-      "decision.exported": "Εξαγωγή απόφασης",
-      "case.review_report_exported": "Εξαγωγή έκθεσης ελέγχου",
-      "knowledge_document.batch_uploaded": "Μαζική μεταφόρτωση γνώσης",
-    },
-  },
-} as const;
+import { localizedCopy, localizedInterface, runtimeCopy } from "@/locales/translations";
 
 function getNavGroups(locale: "en" | "el") {
   const copy = repairMojibakeObject(localizedCopy[locale]).nav;
@@ -1624,6 +475,7 @@ export default function Home() {
   const [reviewTemplateFocus, setReviewTemplateFocus] = useState("");
   const [caseReviewResult, setCaseReviewResult] = useState<CaseReviewResult | null>(null);
   const [reviewedFindingIndices, setReviewedFindingIndices] = useState<Set<number>>(new Set());
+  const [findingExplanations, setFindingExplanations] = useState<Map<number, string>>(new Map());
   const [activeTab, setActiveTab] = useState("documents");
   const [providerForm, setProviderForm] = useState(defaultProviderForm);
   const [providerTestResult, setProviderTestResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -1632,10 +484,26 @@ export default function Home() {
   const [paragraphDrafts, setParagraphDrafts] = useState<Record<number, { paragraphText: string; rationale: string; confidenceScore: string; reviewStatus: "draft" | "reviewed" | "approved" }>>({});
   const [draftProgress, setDraftProgress] = useState(0);
   const [draftProgressElapsed, setDraftProgressElapsed] = useState(0);
+  const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
+  const [activeTimelineIndex, setActiveTimelineIndex] = useState(0);
   const [reviewProgress, setReviewProgress] = useState(0);
   const [reviewProgressElapsed, setReviewProgressElapsed] = useState(0);
   const [intakeSearch, setIntakeSearch] = useState("");
+  const [crossCaseSearchQuery, setCrossCaseSearchQuery] = useState("");
+  const [crossCaseSearchSubmitted, setCrossCaseSearchSubmitted] = useState("");
+  const [usageDashboardDays, setUsageDashboardDays] = useState(30);
   const [intakePriorityFilter, setIntakePriorityFilter] = useState<"all" | "critical" | "high" | "normal">("all");
+  const [batchSelectedCaseIds, setBatchSelectedCaseIds] = useState<Set<number>>(new Set());
+  const [batchReviewOutcomes, setBatchReviewOutcomes] = useState<Array<{
+    caseId: number;
+    caseNumber: string | null;
+    caseTitle: string | null;
+    status: "ok" | "failed";
+    qualityScore: number | null;
+    readyForSignature: boolean | null;
+    blockers: string[];
+    errorMessage: string | null;
+  }> | null>(null);
   const [hiddenSections, setHiddenSections] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -1716,7 +584,7 @@ export default function Home() {
       setDraftProgress(0);
       setDraftProgressElapsed(0);
     }
-  }, [jobStatusQuery.data?.status]);
+  }, [jobStatusQuery.data?.status, jobStatusQuery.data?.errorMessage, rt, utils]);
 
   const isGeneratingDraft = jobStatusQuery.data?.status === "running" || jobStatusQuery.data?.status === "queued";
 
@@ -1770,6 +638,15 @@ export default function Home() {
   }, [user?.autoApprove]);
 
   const casesQuery = trpc.judgeAi.cases.list.useQuery(undefined, { enabled: isAuthenticated });
+  const staleReviewsQuery = trpc.judgeAi.cases.staleReviews.useQuery(undefined, { enabled: isAuthenticated });
+  const usageStatsQuery = trpc.judgeAi.admin.usageStats.useQuery(
+    { days: usageDashboardDays },
+    { enabled: isAuthenticated && user?.role === "admin" },
+  );
+  const crossCaseSearchQueryResult = trpc.judgeAi.cases.crossCaseSearch.useQuery(
+    { query: crossCaseSearchSubmitted },
+    { enabled: isAuthenticated && crossCaseSearchSubmitted.trim().length >= 2 },
+  );
   const knowledgeQuery = trpc.judgeAi.knowledge.list.useQuery(undefined, { enabled: isAuthenticated });
   const workspaceQuery = trpc.judgeAi.cases.workspace.useQuery(
     { caseId: caseId ?? 0 },
@@ -1865,12 +742,107 @@ export default function Home() {
     onError: error => toast.error(error.message),
   });
 
+  const findingResolutionsQuery = trpc.judgeAi.cases.findingResolutions.useQuery(
+    { caseId: caseId ?? 0, reviewSnapshotId: caseReviewResult?.reviewSnapshotId ?? 0 },
+    { enabled: Boolean(caseId && caseReviewResult?.reviewSnapshotId) },
+  );
+
+  const setFindingResolutionMutation = trpc.judgeAi.cases.setFindingResolution.useMutation({
+    onSuccess: async () => {
+      await findingResolutionsQuery.refetch();
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const clearFindingResolutionMutation = trpc.judgeAi.cases.clearFindingResolution.useMutation({
+    onSuccess: async () => {
+      await findingResolutionsQuery.refetch();
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const explainFindingMutation = trpc.judgeAi.cases.explainFinding.useMutation({
+    onError: error => toast.error(error.message),
+  });
+
+  const findingResolutionsMap = useMemo(() => {
+    const map = new Map<number, { status: "addressed" | "accepted" | "deferred"; note: string | null }>();
+    for (const row of findingResolutionsQuery.data ?? []) {
+      map.set(row.findingIndex, { status: row.status, note: row.note });
+    }
+    return map;
+  }, [findingResolutionsQuery.data]);
+
+  async function handleSetFindingResolution(
+    findingIndex: number,
+    status: "addressed" | "accepted" | "deferred",
+    note: string | null,
+  ) {
+    if (!caseId || !caseReviewResult?.reviewSnapshotId) return;
+    try {
+      await setFindingResolutionMutation.mutateAsync({
+        caseId,
+        reviewSnapshotId: caseReviewResult.reviewSnapshotId,
+        findingIndex,
+        status,
+        note,
+      });
+    } catch {
+      // handled in onError
+    }
+  }
+
+  async function handleClearFindingResolution(findingIndex: number) {
+    if (!caseId || !caseReviewResult?.reviewSnapshotId) return;
+    try {
+      await clearFindingResolutionMutation.mutateAsync({
+        caseId,
+        reviewSnapshotId: caseReviewResult.reviewSnapshotId,
+        findingIndex,
+      });
+    } catch {
+      // handled in onError
+    }
+  }
+
+  async function handleExplainFinding(findingIndex: number) {
+    if (!caseId || !caseReviewResult?.reviewSnapshotId) return;
+    try {
+      const result = await explainFindingMutation.mutateAsync({
+        caseId,
+        reviewSnapshotId: caseReviewResult.reviewSnapshotId,
+        findingIndex,
+      });
+      setFindingExplanations(prev => {
+        const next = new Map(prev);
+        next.set(findingIndex, result.explanation);
+        return next;
+      });
+    } catch {
+      // handled in onError
+    }
+  }
+
   const reviewJudgmentMutation = trpc.judgeAi.cases.reviewJudgment.useMutation({
     onSuccess: async result => {
       toast.success(rt.toast.reviewCompleted);
       setCaseReviewResult(result);
       await utils.judgeAi.cases.workspace.invalidate();
       await utils.judgeAi.cases.timeline.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const reviewBatchMutation = trpc.judgeAi.cases.reviewBatch.useMutation({
+    onSuccess: async result => {
+      setBatchReviewOutcomes(result.outcomes);
+      const failed = result.outcomes.filter(outcome => outcome.status === "failed").length;
+      if (failed === 0) {
+        toast.success(rt.toast.batchReviewCompleted);
+      } else {
+        toast.info(rt.toast.batchReviewCompletedWithErrors.replace("{count}", String(failed)));
+      }
+      await utils.judgeAi.cases.list.invalidate();
     },
     onError: error => toast.error(error.message),
   });
@@ -1929,9 +901,45 @@ export default function Home() {
     onError: error => toast.error(error.message),
   });
 
+  const saveSectionNoteMutation = trpc.judgeAi.drafts.saveSectionNote.useMutation({
+    onSuccess: async () => {
+      await utils.judgeAi.cases.workspace.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+  const transcribeSectionNoteMutation = trpc.judgeAi.drafts.transcribeSectionNote.useMutation({
+    onSuccess: async () => {
+      toast.success(rt.toast.voiceNoteSaved);
+      await utils.judgeAi.cases.workspace.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+
+  const exportCaseBundleMutation = trpc.judgeAi.cases.exportBundle.useMutation({
+    onSuccess: async result => {
+      toast.success(rt.toast.caseBundleExported);
+      if (result?.fileUrl) {
+        window.open(result.fileUrl, "_blank", "noopener,noreferrer");
+      }
+      await utils.judgeAi.cases.workspace.invalidate();
+    },
+    onError: error => toast.error(error.message),
+  });
+
   const exportDraftMutation = trpc.judgeAi.drafts.exportDocx.useMutation({
     onSuccess: async exported => {
       toast.success(rt.toast.docxExportCreated);
+      const unresolved = (exported as { unresolvedCitations?: Array<{ citation: string; occurrences: number }> })?.unresolvedCitations ?? [];
+      if (unresolved.length > 0) {
+        const preview = unresolved.slice(0, 5).map(u => u.citation).join(", ");
+        const suffix = unresolved.length > 5 ? ` (+${unresolved.length - 5})` : "";
+        toast.warning(
+          rt.toast.citationsUnresolved
+            .replace("{count}", String(unresolved.length))
+            .replace("{preview}", `${preview}${suffix}`),
+          { duration: 10000 },
+        );
+      }
       await utils.judgeAi.cases.workspace.invalidate();
       await utils.judgeAi.cases.timeline.invalidate();
       if (caseId && exported?.id) {
@@ -2089,6 +1097,7 @@ export default function Home() {
 
   useEffect(() => {
     setReviewedFindingIndices(new Set());
+    setActiveTimelineIndex(0);
   }, [caseReviewResult?.reviewSnapshotId]);
 
   const activeDraft = useMemo(() => workspaceQuery.data?.latestDraft ?? null, [workspaceQuery.data]);
@@ -2133,6 +1142,52 @@ export default function Home() {
     }
     return null;
   }, [caseReviewResult, localAutoApprove, ui.workspace.resolveReviewBlockers, ui.workspace.reviewBeforeApproval]);
+
+  // Workspace keyboard shortcuts: number keys switch tabs, "?" shows a help
+  // toast, "a" approves on the review tab. Only fires when the case workspace
+  // is open and no text input has focus.
+  useEffect(() => {
+    if (!caseId) return;
+    function isEditableTarget(target: EventTarget | null): boolean {
+      if (!(target instanceof HTMLElement)) return false;
+      if (target.isContentEditable) return true;
+      const tag = target.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (isEditableTarget(event.target)) return;
+      if (event.key === "1") {
+        event.preventDefault();
+        setActiveTab("documents");
+      } else if (event.key === "2") {
+        event.preventDefault();
+        setActiveTab("draft");
+      } else if (event.key === "3") {
+        event.preventDefault();
+        setActiveTab("review");
+      } else if (event.key === "4") {
+        event.preventDefault();
+        setActiveTab("history");
+      } else if (event.key === "?") {
+        event.preventDefault();
+        toast.info(rt.toast.workspaceShortcutsHelp, { duration: 6000 });
+      } else if (event.key === "a" || event.key === "A") {
+        if (activeTab !== "review") return;
+        if (!caseId) return;
+        if (!activeDraft || activeDraft.status === "approved") return;
+        if (approveDraftMutation.isPending) return;
+        event.preventDefault();
+        if (approvalGateMessage) {
+          toast.error(approvalGateMessage);
+          return;
+        }
+        approveDraftMutation.mutate({ caseId, draftId: activeDraft.id });
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [caseId, rt.toast.workspaceShortcutsHelp, activeTab, activeDraft, approvalGateMessage, approveDraftMutation]);
 
   const searchResults = useMemo(() => {
     const payload = searchQueryResult.data;
@@ -2290,6 +1345,70 @@ export default function Home() {
     const next = progression[item.status];
     if (!next) return;
     updateCaseStatusMutation.mutate({ caseId: item.id, status: next as any });
+  }
+
+  function handleExportTimelineCsv() {
+    const events = caseReviewResult?.chronologicalEvents ?? [];
+    if (!events.length) {
+      toast.info(rt.toast.noTimelineEvents);
+      return;
+    }
+    const header = ["#", "Date", "Event", "Significance"];
+    const escape = (value: unknown) => {
+      const text = value == null ? "" : String(value);
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    };
+    const lines = [
+      header.join(","),
+      ...events.map((event, index) =>
+        [String(index + 1), event.date, event.event, event.significance ?? ""].map(escape).join(","),
+      ),
+    ];
+    const caseLabel = workspaceQuery.data?.case?.caseNumber?.replace(/[^a-zA-Z0-9._-]/g, "_") ?? "case";
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `timeline-${caseLabel}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleToggleBatchSelection(caseIdToToggle: number) {
+    setBatchSelectedCaseIds(current => {
+      const next = new Set(current);
+      if (next.has(caseIdToToggle)) next.delete(caseIdToToggle);
+      else next.add(caseIdToToggle);
+      return next;
+    });
+  }
+
+  function handleSelectAllVisibleForBatch() {
+    const visibleIds = filteredIntakeQueue.map(item => item.id);
+    setBatchSelectedCaseIds(new Set(visibleIds));
+  }
+
+  function handleClearBatchSelection() {
+    setBatchSelectedCaseIds(new Set());
+    setBatchReviewOutcomes(null);
+  }
+
+  async function handleRunBatchReview() {
+    const ids = Array.from(batchSelectedCaseIds);
+    if (!ids.length) {
+      toast.info(rt.toast.batchReviewNoSelection);
+      return;
+    }
+    try {
+      await reviewBatchMutation.mutateAsync({
+        caseIds: ids,
+        reviewTemplateKey: "inheritance",
+      });
+    } catch {
+      // toast handled in onError
+    }
   }
 
   function handleExportIntakeCsv() {
@@ -2666,6 +1785,149 @@ export default function Home() {
               </ShellCard>
             )}
 
+            <ShellCard
+              title={copy.overview.crossCaseSearchTitle}
+              description={copy.overview.crossCaseSearchDescription}
+            >
+              <div className="space-y-4">
+                <form
+                  onSubmit={event => {
+                    event.preventDefault();
+                    setCrossCaseSearchSubmitted(crossCaseSearchQuery.trim());
+                  }}
+                  className="flex flex-col gap-2 sm:flex-row"
+                >
+                  <input
+                    type="search"
+                    value={crossCaseSearchQuery}
+                    onChange={event => setCrossCaseSearchQuery(event.target.value)}
+                    placeholder={copy.overview.crossCaseSearchPlaceholder}
+                    className="h-11 flex-1 rounded-xl border border-stone-300/80 bg-white px-4 text-sm text-stone-900 shadow-sm outline-none transition placeholder:text-stone-400 focus:border-stone-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-stone-400"
+                  />
+                  <Button type="submit" className="rounded-xl" disabled={crossCaseSearchQuery.trim().length < 2}>
+                    {copy.overview.crossCaseSearchAction}
+                  </Button>
+                  {crossCaseSearchSubmitted ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="rounded-xl"
+                      onClick={() => {
+                        setCrossCaseSearchQuery("");
+                        setCrossCaseSearchSubmitted("");
+                      }}
+                    >
+                      {copy.overview.crossCaseSearchClear}
+                    </Button>
+                  ) : null}
+                </form>
+                {crossCaseSearchSubmitted ? (
+                  crossCaseSearchQueryResult.isFetching ? (
+                    <p className="text-sm text-stone-500 dark:text-stone-400">{copy.overview.crossCaseSearchLoading}</p>
+                  ) : (() => {
+                    const caseHits = crossCaseSearchQueryResult.data?.caseDocuments ?? [];
+                    const knowledgeHits = crossCaseSearchQueryResult.data?.knowledgeDocuments ?? [];
+                    if (caseHits.length === 0 && knowledgeHits.length === 0) {
+                      return <p className="text-sm text-stone-500 dark:text-stone-400">{copy.overview.crossCaseSearchEmpty}</p>;
+                    }
+                    return (
+                      <div className="space-y-3">
+                        {caseHits.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500 dark:text-stone-400">
+                              {copy.overview.crossCaseSearchCaseHits} ({caseHits.length})
+                            </p>
+                            {caseHits.slice(0, 15).map(hit => {
+                              const snippet = (hit.extractedText ?? "").slice(0, 240);
+                              return (
+                                <button
+                                  key={`case-${hit.id}`}
+                                  type="button"
+                                  onClick={() => setLocation(`/cases/${hit.caseId}`)}
+                                  className="w-full rounded-xl border border-stone-200/80 bg-white px-4 py-3 text-left shadow-sm transition hover:border-stone-300 hover:shadow-md dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,29,40,0.98)_0%,rgba(15,18,27,0.99)_100%)]"
+                                >
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="text-sm font-semibold text-stone-950 dark:text-stone-100">{hit.title ?? hit.fileName}</p>
+                                    {hit.caseNumber ? <StatusPill>{hit.caseNumber}</StatusPill> : null}
+                                  </div>
+                                  {hit.caseTitle ? (
+                                    <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{hit.caseTitle}</p>
+                                  ) : null}
+                                  {snippet ? (
+                                    <p className="mt-2 line-clamp-2 text-sm text-stone-600 dark:text-stone-300">{snippet}</p>
+                                  ) : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : null}
+                        {knowledgeHits.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500 dark:text-stone-400">
+                              {copy.overview.crossCaseSearchKnowledgeHits} ({knowledgeHits.length})
+                            </p>
+                            {knowledgeHits.slice(0, 10).map(hit => (
+                              <div
+                                key={`kb-${hit.id}`}
+                                className="rounded-xl border border-stone-200/80 bg-white px-4 py-3 shadow-sm dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,29,40,0.98)_0%,rgba(15,18,27,0.99)_100%)]"
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-sm font-semibold text-stone-950 dark:text-stone-100">{hit.title}</p>
+                                  {hit.citation ? <StatusPill>{hit.citation}</StatusPill> : null}
+                                </div>
+                                {hit.summary ? (
+                                  <p className="mt-1 line-clamp-2 text-sm text-stone-600 dark:text-stone-300">{hit.summary}</p>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })()
+                ) : null}
+              </div>
+            </ShellCard>
+
+            {(staleReviewsQuery.data?.length ?? 0) > 0 ? (
+              <div className="rounded-[1.35rem] border border-amber-200/80 bg-amber-50/70 p-4 shadow-sm dark:border-amber-900/40 dark:bg-amber-900/10">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                      {copy.overview.staleReviewTitle.replace("{count}", String(staleReviewsQuery.data?.length ?? 0))}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-amber-800 dark:text-amber-200">
+                      {copy.overview.staleReviewDescription}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-xl shrink-0"
+                    onClick={async () => {
+                      const ids = (staleReviewsQuery.data ?? []).map(c => c.id);
+                      if (!ids.length) return;
+                      setBatchSelectedCaseIds(new Set(ids));
+                      try {
+                        await reviewBatchMutation.mutateAsync({
+                          caseIds: ids,
+                          reviewTemplateKey: "inheritance",
+                        });
+                        await staleReviewsQuery.refetch();
+                      } catch {
+                        // toast via mutation onError
+                      }
+                    }}
+                    disabled={reviewBatchMutation.isPending}
+                  >
+                    {reviewBatchMutation.isPending
+                      ? copy.overview.batchReviewRunning
+                      : copy.overview.staleReviewRunNow}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
             {hiddenSections.has("intake") ? null : (
               <ShellCard title={copy.overview.intakeTitle} description={copy.overview.intakeDescription} actions={intakeCardActions}>
                 <div className="space-y-5 min-w-0">
@@ -2678,12 +1940,59 @@ export default function Home() {
                     <div className="rounded-[1.35rem] border border-stone-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(244,239,230,0.92))] px-4 py-4 shadow-sm dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,29,40,0.98)_0%,rgba(15,18,27,0.99)_100%)]">
                       <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{copy.overview.priorityQueueTitle}</p>
                       <p className="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-200">{copy.overview.priorityQueueDescription}</p>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl"
+                          onClick={handleSelectAllVisibleForBatch}
+                          disabled={!displayedIntake.length || reviewBatchMutation.isPending}
+                        >
+                          {copy.overview.batchReviewSelectAll}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl"
+                          onClick={handleClearBatchSelection}
+                          disabled={batchSelectedCaseIds.size === 0 || reviewBatchMutation.isPending}
+                        >
+                          {copy.overview.batchReviewClear}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="rounded-xl"
+                          onClick={handleRunBatchReview}
+                          disabled={batchSelectedCaseIds.size === 0 || reviewBatchMutation.isPending}
+                        >
+                          {reviewBatchMutation.isPending
+                            ? copy.overview.batchReviewRunning
+                            : copy.overview.batchReviewRun}
+                        </Button>
+                        {batchSelectedCaseIds.size > 0 ? (
+                          <span className="text-xs font-medium uppercase tracking-[0.16em] text-stone-500 dark:text-stone-400">
+                            {copy.overview.batchReviewSelected.replace("{count}", String(batchSelectedCaseIds.size))}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     {displayedIntake.length ? (
                       displayedIntake.map(item => (
                         <div key={item.id} className="rounded-[1.35rem] border border-stone-200/80 bg-white/92 px-4 py-4 shadow-[0_14px_34px_-24px_rgba(31,41,55,0.2)] dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,29,40,0.98)_0%,rgba(15,18,27,0.99)_100%)]">
                           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                            <div className="min-w-0 flex-1">
+                            <div className="flex min-w-0 flex-1 items-start gap-3">
+                              <input
+                                type="checkbox"
+                                checked={batchSelectedCaseIds.has(item.id)}
+                                onChange={() => handleToggleBatchSelection(item.id)}
+                                disabled={reviewBatchMutation.isPending}
+                                aria-label={`${copy.overview.batchReviewRun} · ${item.caseNumber}`}
+                                className="mt-1 h-4 w-4 cursor-pointer rounded border-stone-300 text-stone-900 focus:ring-stone-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-600 dark:text-stone-100 dark:focus:ring-stone-400"
+                              />
+                              <div className="min-w-0 flex-1">
                               <div className="flex flex-wrap items-center gap-2">
                                 <p className="text-base font-semibold text-stone-950 dark:text-stone-100 break-words">{item.title}</p>
                                 <StatusPill>{intakePriorityLabels[item.priorityLevel as keyof typeof intakePriorityLabels]}</StatusPill>
@@ -2691,6 +2000,7 @@ export default function Home() {
                               </div>
                               <p className="mt-2 text-sm text-stone-600 dark:text-stone-200 break-words">{item.caseNumber} · {item.caseType} · {item.courtLevel}</p>
                               <p className="mt-3 text-sm leading-6 text-stone-600 dark:text-stone-200">{intakeStageSummary[item.status as keyof typeof intakeStageSummary] ?? copy.overview.intakeReviewSummary}</p>
+                              </div>
                             </div>
                             <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
                               <p className="text-sm text-stone-500 dark:text-stone-300">{copy.overview.updatedPrefix} {formatTimestamp(item.updatedAt)}</p>
@@ -2729,6 +2039,87 @@ export default function Home() {
                 </div>
               </ShellCard>
             )}
+
+            {batchReviewOutcomes && batchReviewOutcomes.length > 0 ? (
+              <ShellCard
+                title={copy.overview.batchReviewResultsTitle}
+                description={copy.overview.batchReviewResultsDescription}
+                actions={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-lg"
+                    onClick={() => setBatchReviewOutcomes(null)}
+                  >
+                    {copy.overview.batchReviewClear}
+                  </Button>
+                }
+              >
+                <div className="space-y-3">
+                  {batchReviewOutcomes.map(outcome => {
+                    const failed = outcome.status === "failed";
+                    const blocked = !failed && !outcome.readyForSignature;
+                    const ready = !failed && outcome.readyForSignature === true;
+                    const tone = failed
+                      ? "border-rose-200/80 bg-rose-50/60 dark:border-rose-900/40 dark:bg-rose-900/10"
+                      : blocked
+                      ? "border-amber-200/80 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-900/10"
+                      : "border-emerald-200/80 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-900/10";
+                    return (
+                      <div
+                        key={outcome.caseId}
+                        className={`rounded-[1.25rem] border px-4 py-3 shadow-sm ${tone}`}
+                      >
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-stone-950 dark:text-stone-100 break-words">
+                                {outcome.caseTitle ?? `Case #${outcome.caseId}`}
+                              </p>
+                              <StatusPill>
+                                {failed
+                                  ? copy.overview.batchReviewResultFailed
+                                  : ready
+                                  ? copy.overview.batchReviewResultReady
+                                  : copy.overview.batchReviewResultBlockers}
+                              </StatusPill>
+                              {!failed && outcome.qualityScore !== null ? (
+                                <span className="text-xs font-medium text-stone-600 dark:text-stone-300">
+                                  {copy.overview.batchReviewQualityLabel}: {outcome.qualityScore}
+                                </span>
+                              ) : null}
+                            </div>
+                            {outcome.caseNumber ? (
+                              <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{outcome.caseNumber}</p>
+                            ) : null}
+                            {failed && outcome.errorMessage ? (
+                              <p className="mt-2 text-sm text-rose-700 dark:text-rose-200">{outcome.errorMessage}</p>
+                            ) : null}
+                            {!failed && outcome.blockers.length > 0 ? (
+                              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-stone-700 dark:text-stone-200">
+                                {outcome.blockers.slice(0, 3).map((blocker, idx) => (
+                                  <li key={idx}>{blocker}</li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl shrink-0"
+                            onClick={() => setLocation(`/cases/${outcome.caseId}`)}
+                          >
+                            {copy.overview.openWorkspace}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ShellCard>
+            ) : null}
 
             {hiddenSections.has("throughput") ? null : (
               <ShellCard title={copy.overview.throughputTitle} description={copy.overview.throughputDescription}>
@@ -2929,10 +2320,26 @@ export default function Home() {
                         <p className="mt-1 truncate text-sm text-stone-500 dark:text-stone-400">{item.caseNumber} · {item.jurisdictionCode} · {item.courtLevel}</p>
                       </button>
                       <div className="flex items-center gap-1">
-                        <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-lg p-0" onClick={() => handleStartEditCase(item)}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 rounded-lg p-0"
+                          onClick={() => handleStartEditCase(item)}
+                          aria-label={ui.cases.editMatterLabel}
+                          title={ui.cases.editMatterLabel}
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button type="button" variant="ghost" size="sm" className="h-8 w-8 rounded-lg p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300" onClick={() => setDeleteConfirmCaseId(item.id)}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 rounded-lg p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          onClick={() => setDeleteConfirmCaseId(item.id)}
+                          aria-label={ui.cases.deleteMatterLabel}
+                          title={ui.cases.deleteMatterLabel}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -2964,7 +2371,7 @@ export default function Home() {
                 <InputField label={ui.knowledge.citation} value={knowledgeForm.citation} onChange={value => setKnowledgeForm(current => ({ ...current, citation: value }))} />
               </div>
               <InputField label={ui.knowledge.sourceReference} value={knowledgeForm.sourceReference} onChange={value => setKnowledgeForm(current => ({ ...current, sourceReference: value }))} />
-              <FileField label={ui.knowledge.fileLabel} onChange={setKnowledgeFile} selectedFile={knowledgeFile} selectedPrefix={ui.common.selectedFile} />
+              <FileField label={ui.knowledge.fileLabel} onChange={setKnowledgeFile} selectedFile={knowledgeFile} selectedPrefix={ui.common.selectedFile} accept=".pdf,.docx,.txt,.md,.html,.htm,.json,.jpg,.jpeg,.png,.tiff,.tif,.webp,.bmp,.gif,.mp3,.wav,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/json,image/*,audio/mpeg,audio/wav,audio/wave,audio/x-wav,audio/mp3" hint={ui.knowledge.fileAcceptHint} />
               <Button type="submit" className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200" disabled={uploadKnowledgeMutation.isPending}>
                 {uploadKnowledgeMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookCopy className="mr-2 h-4 w-4" />}{ui.knowledge.uploadAction}
               </Button>
@@ -2973,7 +2380,7 @@ export default function Home() {
 
           <ShellCard title={ui.knowledge.batchTitle} description={ui.knowledge.batchDescription}>
             <form className="space-y-4" onSubmit={handleKnowledgeBatchUpload}>
-              <MultiFileField label={ui.knowledge.batchFileLabel} selectedFiles={knowledgeBatchFiles} onChange={setKnowledgeBatchFiles} selectedPrefix={ui.common.selectedFiles} />
+              <MultiFileField label={ui.knowledge.batchFileLabel} selectedFiles={knowledgeBatchFiles} onChange={setKnowledgeBatchFiles} selectedPrefix={ui.common.selectedFiles} accept=".pdf,.docx,.txt,.md,.html,.htm,.json,.jpg,.jpeg,.png,.tiff,.tif,.webp,.bmp,.gif,.mp3,.wav,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/json,image/*,audio/mpeg,audio/wav,audio/wave,audio/x-wav,audio/mp3" hint={ui.knowledge.fileAcceptHint} />
               <p className="rounded-[1.2rem] border border-stone-200/80 bg-stone-50/90 px-4 py-3 text-sm leading-6 text-stone-600 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)] dark:text-stone-200">{ui.knowledge.batchHint}</p>
               <Button type="submit" className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200" disabled={batchUploadKnowledgeMutation.isPending}>
                 {batchUploadKnowledgeMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}{ui.knowledge.batchAction}
@@ -3083,7 +2490,12 @@ export default function Home() {
               <Loader2 className="h-4 w-4 shrink-0 animate-spin text-stone-700 dark:text-stone-200" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-3 text-xs">
-                  <span className="truncate font-medium text-stone-800 dark:text-stone-100">{ui.workspace.generateAction} — {getProgressStep()}</span>
+                  <span className="truncate font-medium text-stone-800 dark:text-stone-100">
+                    {ui.workspace.generateAction} — {getProgressStep()}
+                    {jobStatusQuery.data?.streamedChars
+                      ? ` · ${jobStatusQuery.data.streamedChars.toLocaleString()} ${ui.workspace.generationProgress.charsReceived}`
+                      : ""}
+                  </span>
                   <span className="shrink-0 tabular-nums text-stone-500 dark:text-stone-400">{Math.round(draftProgress)}% · {draftProgressElapsed}{ui.workspace.generationProgress.seconds}</span>
                 </div>
                 <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-200/80 dark:bg-white/10">
@@ -3510,7 +2922,7 @@ export default function Home() {
               <form className="space-y-4" onSubmit={handleCaseDocumentUpload}>
                 <InputField label={ui.workspace.documentTitle} value={caseDocumentTitle} onChange={setCaseDocumentTitle} />
                 <SelectField label={ui.workspace.documentType} value={caseDocumentType} onChange={setCaseDocumentType} options={[["pleading", ui.workspace.documentTypes.pleading], ["evidence", ui.workspace.documentTypes.evidence], ["supporting", ui.workspace.documentTypes.supporting], ["reference", ui.workspace.documentTypes.reference], ["decision", ui.workspace.documentTypes.decision], ["other", ui.workspace.documentTypes.other]]} />
-                <FileField label={ui.workspace.fileLabel} onChange={setCaseFile} selectedFile={caseFile} selectedPrefix={ui.common.selectedFile} />
+                <FileField label={ui.workspace.fileLabel} onChange={setCaseFile} selectedFile={caseFile} selectedPrefix={ui.common.selectedFile} accept=".pdf,.docx,.txt,.md,.html,.htm,.json,.jpg,.jpeg,.png,.tiff,.tif,.webp,.bmp,.gif,.mp3,.wav,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/json,image/*,audio/mpeg,audio/wav,audio/wave,audio/x-wav,audio/mp3" hint={ui.workspace.fileAcceptHint} />
                 <Button type="submit" className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200" disabled={uploadCaseDocumentMutation.isPending}>
                   {uploadCaseDocumentMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FilePlus2 className="mr-2 h-4 w-4" />}{ui.workspace.uploadAction}
                 </Button>
@@ -3519,7 +2931,7 @@ export default function Home() {
 
             <ShellCard title={ui.workspace.batchTitle} description={ui.workspace.batchDescription}>
               <form className="space-y-4" onSubmit={handleCaseBatchUpload}>
-                <MultiFileField label={ui.workspace.batchFileLabel} selectedFiles={caseBatchFiles} onChange={setCaseBatchFiles} selectedPrefix={ui.common.selectedFiles} />
+                <MultiFileField label={ui.workspace.batchFileLabel} selectedFiles={caseBatchFiles} onChange={setCaseBatchFiles} selectedPrefix={ui.common.selectedFiles} accept=".pdf,.docx,.txt,.md,.html,.htm,.json,.jpg,.jpeg,.png,.tiff,.tif,.webp,.bmp,.gif,.mp3,.wav,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/html,application/json,image/*,audio/mpeg,audio/wav,audio/wave,audio/x-wav,audio/mp3" hint={ui.workspace.fileAcceptHint} />
                 <p className="rounded-[1.2rem] border border-stone-200/80 bg-stone-50/90 px-4 py-3 text-sm leading-6 text-stone-600 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)] dark:text-stone-200">{ui.workspace.batchHint}</p>
                 <Button type="submit" className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200" disabled={batchImportCaseDocumentsMutation.isPending}>
                   {batchImportCaseDocumentsMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookOpen className="mr-2 h-4 w-4" />}{ui.workspace.batchAction}
@@ -3632,6 +3044,13 @@ export default function Home() {
                       <StatusPill>{ui.workspace.confidence} {caseReviewResult.confidenceScore}</StatusPill>
                       <StatusPill>{ui.workspace.qualityScoreLabel} {caseReviewResult.decisionQuality?.score ?? "—"}/100</StatusPill>
                       <StatusPill>{caseReviewResult.preSignatureReview?.readyForSignature ? ui.workspace.readyForSignature : ui.workspace.notReadyForSignature}</StatusPill>
+                      {reviewComparison ? (
+                        <StatusPill>
+                          {ui.workspace.sinceLastReview}{" "}
+                          {reviewComparison.qualityScoreDelta > 0 ? "+" : ""}
+                          {reviewComparison.qualityScoreDelta} · {reviewComparison.findingChangeCount} {ui.workspace.changedFindings}
+                        </StatusPill>
+                      ) : null}
                     </div>
                     <p className="mt-4 text-sm leading-7 text-stone-700 dark:text-stone-200">{caseReviewResult.summary}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -3725,6 +3144,11 @@ export default function Home() {
                     <div className="space-y-3">
                       {(caseReviewResult.findings ?? []).length ? (caseReviewResult.findings ?? []).map((finding: any, index: number) => {
                         const isReviewed = reviewedFindingIndices.has(index);
+                        const resolution = findingResolutionsMap.get(index);
+                        const explanation = findingExplanations.get(index);
+                        const isExplaining = explainFindingMutation.isPending && explainFindingMutation.variables?.findingIndex === index;
+                        const statusClasses = (active: boolean, base: string) =>
+                          `rounded-lg border px-2.5 py-1 text-xs font-medium transition ${active ? base : "border-stone-200 bg-transparent text-stone-500 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"}`;
                         return (
                           <div key={`${finding.issue}-${index}`} className="rounded-[1.25rem] border border-stone-200/80 bg-stone-50/90 p-4 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)]">
                             <div className="flex flex-wrap items-center gap-2">
@@ -3733,7 +3157,7 @@ export default function Home() {
                               <div className="ml-auto flex items-center gap-1.5">
                                 <button
                                   type="button"
-                                  className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${!isReviewed ? "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-200" : "border-stone-200 bg-transparent text-stone-500 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"}`}
+                                  className={statusClasses(!isReviewed, "border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-200")}
                                   onClick={() => setReviewedFindingIndices(prev => {
                                     const next = new Set(prev);
                                     next.delete(index);
@@ -3744,7 +3168,7 @@ export default function Home() {
                                 </button>
                                 <button
                                   type="button"
-                                  className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition ${isReviewed ? "border-green-600 bg-green-600 text-white dark:border-green-600 dark:bg-green-600 dark:text-white" : "border-stone-200 bg-transparent text-stone-500 hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"}`}
+                                  className={statusClasses(isReviewed, "border-green-600 bg-green-600 text-white dark:border-green-600 dark:bg-green-600 dark:text-white")}
                                   onClick={() => setReviewedFindingIndices(prev => {
                                     const next = new Set(prev);
                                     next.add(index);
@@ -3759,6 +3183,72 @@ export default function Home() {
                             <p className="mt-2 text-sm leading-6 text-stone-600 dark:text-stone-200">{finding.explanation}</p>
                             {finding.recommendedAction ? <p className="mt-2 text-sm font-medium text-amber-700 dark:text-amber-300">{finding.recommendedAction}</p> : null}
                             {(finding.supportingSources ?? []).length ? <p className="mt-2 text-xs uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{finding.supportingSources.join(" · ")}</p> : null}
+
+                            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                              <span className="mr-1 text-[11px] uppercase tracking-[0.16em] text-stone-500 dark:text-stone-400">
+                                {ui.workspace.findingResolutionLabel}
+                              </span>
+                              <button
+                                type="button"
+                                className={statusClasses(resolution?.status === "addressed", "border-emerald-400 bg-emerald-500 text-white dark:border-emerald-500 dark:bg-emerald-600")}
+                                onClick={() => handleSetFindingResolution(index, "addressed", resolution?.note ?? null)}
+                                disabled={setFindingResolutionMutation.isPending}
+                              >
+                                {ui.workspace.findingResolutionAddressed}
+                              </button>
+                              <button
+                                type="button"
+                                className={statusClasses(resolution?.status === "accepted", "border-stone-500 bg-stone-700 text-white dark:border-stone-400 dark:bg-stone-600")}
+                                onClick={() => handleSetFindingResolution(index, "accepted", resolution?.note ?? null)}
+                                disabled={setFindingResolutionMutation.isPending}
+                              >
+                                {ui.workspace.findingResolutionAccepted}
+                              </button>
+                              <button
+                                type="button"
+                                className={statusClasses(resolution?.status === "deferred", "border-amber-500 bg-amber-500 text-white dark:border-amber-500 dark:bg-amber-600")}
+                                onClick={() => handleSetFindingResolution(index, "deferred", resolution?.note ?? null)}
+                                disabled={setFindingResolutionMutation.isPending}
+                              >
+                                {ui.workspace.findingResolutionDeferred}
+                              </button>
+                              {resolution ? (
+                                <button
+                                  type="button"
+                                  className="rounded-lg border border-stone-200 bg-transparent px-2.5 py-1 text-xs font-medium text-stone-500 transition hover:bg-stone-100 dark:border-stone-700 dark:text-stone-400 dark:hover:bg-stone-800"
+                                  onClick={() => handleClearFindingResolution(index)}
+                                  disabled={clearFindingResolutionMutation.isPending}
+                                >
+                                  {ui.workspace.findingResolutionClear}
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="ml-auto rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 transition hover:bg-stone-100 disabled:opacity-60 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+                                onClick={() => handleExplainFinding(index)}
+                                disabled={isExplaining}
+                              >
+                                {isExplaining ? ui.workspace.findingExplainRunning : ui.workspace.findingExplain}
+                              </button>
+                            </div>
+
+                            {resolution ? (
+                              <textarea
+                                value={resolution.note ?? ""}
+                                onChange={event => handleSetFindingResolution(index, resolution.status, event.target.value)}
+                                placeholder={ui.workspace.findingResolutionNotePlaceholder}
+                                className="mt-2 min-h-[60px] w-full rounded-lg border border-stone-300/80 bg-white px-3 py-2 text-sm text-stone-900 shadow-sm outline-none transition placeholder:text-stone-400 focus:border-stone-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-stone-400"
+                              />
+                            ) : null}
+
+                            {explanation ? (
+                              <div className="mt-3 rounded-lg border border-sky-200/80 bg-sky-50/60 p-3 text-sm leading-6 text-sky-900 dark:border-sky-900/40 dark:bg-sky-900/10 dark:text-sky-100">
+                                <p className="mb-1 text-[11px] uppercase tracking-[0.16em] text-sky-600 dark:text-sky-300">
+                                  {ui.workspace.findingExplanationTitle}
+                                </p>
+                                <p className="whitespace-pre-wrap">{explanation}</p>
+                              </div>
+                            ) : null}
                           </div>
                         );
                       }) : <p className="text-sm leading-6 text-stone-600 dark:text-stone-200">{ui.workspace.caseCheckNoItems}</p>}
@@ -3777,6 +3267,111 @@ export default function Home() {
                       </ul>
                     </ShellCard>
                   </div>
+
+                  {/* Scrubbable Timeline */}
+                  {(caseReviewResult.chronologicalEvents ?? []).length > 0 && (() => {
+                    const events = caseReviewResult.chronologicalEvents ?? [];
+                    const safeIndex = Math.min(Math.max(activeTimelineIndex, 0), events.length - 1);
+                    const active = events[safeIndex];
+                    const significanceColor = (s: string) => s === "high" ? "bg-rose-500" : s === "medium" ? "bg-amber-500" : "bg-stone-400 dark:bg-stone-500";
+                    const significanceRing = (s: string) => s === "high" ? "ring-rose-400/60" : s === "medium" ? "ring-amber-400/60" : "ring-stone-400/60";
+                    return (
+                      <ShellCard
+                        title={ui.workspace.chronologicalEventsTitle}
+                        description={ui.workspace.chronologicalEventsDescription}
+                        actions={
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-lg"
+                            onClick={handleExportTimelineCsv}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            {ui.workspace.exportTimelineCsv}
+                          </Button>
+                        }
+                      >
+                        <div className="space-y-5">
+                          <div
+                            role="slider"
+                            aria-valuemin={1}
+                            aria-valuemax={events.length}
+                            aria-valuenow={safeIndex + 1}
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); setActiveTimelineIndex(Math.min(safeIndex + 1, events.length - 1)); }
+                              else if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); setActiveTimelineIndex(Math.max(safeIndex - 1, 0)); }
+                              else if (e.key === "Home") { e.preventDefault(); setActiveTimelineIndex(0); }
+                              else if (e.key === "End") { e.preventDefault(); setActiveTimelineIndex(events.length - 1); }
+                            }}
+                            className="relative py-4 outline-none focus-visible:ring-2 focus-visible:ring-stone-500/60 rounded-xl"
+                          >
+                            <div className="relative h-1.5 bg-stone-200 dark:bg-stone-700 rounded-full">
+                              <div
+                                className="absolute top-0 left-0 h-1.5 bg-stone-900 dark:bg-stone-100 rounded-full transition-all duration-200"
+                                style={{ width: events.length > 1 ? `${(safeIndex / (events.length - 1)) * 100}%` : "100%" }}
+                              />
+                              {events.map((event: any, index: number) => {
+                                const pct = events.length > 1 ? (index / (events.length - 1)) * 100 : 50;
+                                const isActive = index === safeIndex;
+                                return (
+                                  <button
+                                    type="button"
+                                    key={`scrub-${index}`}
+                                    onClick={() => setActiveTimelineIndex(index)}
+                                    aria-label={`${event.date} — ${event.event}`}
+                                    title={`${event.date}`}
+                                    className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white dark:border-stone-900 transition-all ${significanceColor(event.significance)} ${isActive ? `w-5 h-5 ring-4 ${significanceRing(event.significance)} shadow-lg` : "w-3.5 h-3.5 hover:scale-125"}`}
+                                    style={{ left: `${pct}%` }}
+                                  />
+                                );
+                              })}
+                            </div>
+                            <div className="mt-3 flex items-center justify-between text-[11px] font-medium tracking-wider uppercase text-stone-500 dark:text-stone-400">
+                              <span>{events[0]?.date}</span>
+                              <span className="tabular-nums">{safeIndex + 1} / {events.length}</span>
+                              <span>{events[events.length - 1]?.date}</span>
+                            </div>
+                          </div>
+                          {active ? (
+                            <div className={`rounded-[1.25rem] border bg-white/70 p-4 shadow-sm transition-colors dark:bg-stone-800/50 ${active.significance === "high" ? "border-rose-200/80 dark:border-rose-900/50" : active.significance === "medium" ? "border-amber-200/80 dark:border-amber-900/50" : "border-stone-200/80 dark:border-stone-700/80"}`}>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`inline-block w-2 h-2 rounded-full ${significanceColor(active.significance)}`} />
+                                <span className="text-xs font-bold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-400">{active.date}</span>
+                                <span className="text-[10px] uppercase tracking-[0.18em] text-stone-400 dark:text-stone-500">· {translateToken(locale, String(active.significance ?? ""))}</span>
+                              </div>
+                              <p className="mt-2 text-sm leading-6 text-stone-800 dark:text-stone-200">{active.event}</p>
+                            </div>
+                          ) : null}
+                          <div className="flex items-center justify-between gap-2">
+                            <Button type="button" variant="outline" className="rounded-xl" disabled={safeIndex === 0} onClick={() => setActiveTimelineIndex(Math.max(safeIndex - 1, 0))}>
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <p className="text-xs text-stone-500 dark:text-stone-400 text-center flex-1">{ui.workspace.chronologicalEventsDescription}</p>
+                            <Button type="button" variant="outline" className="rounded-xl" disabled={safeIndex >= events.length - 1} onClick={() => setActiveTimelineIndex(Math.min(safeIndex + 1, events.length - 1))}>
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </ShellCard>
+                    );
+                  })()}
+
+                  {caseReviewResult.appellateStressTest ? (
+                    <ShellCard title={ui.workspace.appellateStressTest} description={ui.workspace.appellateStressTestDescription}>
+                       <div className="space-y-4">
+                         <div className="rounded-[1.25rem] border border-rose-200/80 bg-rose-50/50 p-4 dark:border-rose-900/40 dark:bg-rose-900/10">
+                           <p className="text-xs uppercase tracking-[0.18em] text-rose-500 font-bold mb-2">{ui.workspace.strongestOpposingArgument}</p>
+                           <p className="text-sm leading-6 text-stone-700 dark:text-stone-300">{caseReviewResult.appellateStressTest.strongestOpposingArgument}</p>
+                         </div>
+                         <div className="rounded-[1.25rem] border border-emerald-200/80 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-900/10">
+                           <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-bold mb-2">{ui.workspace.rebuttalSuggestion}</p>
+                           <p className="text-sm leading-6 text-stone-700 dark:text-stone-300">{caseReviewResult.appellateStressTest.rebuttalSuggestion}</p>
+                         </div>
+                       </div>
+                    </ShellCard>
+                  ) : null}
 
                   <div className="grid gap-4 xl:grid-cols-2">
                     <ShellCard title={ui.workspace.caseCheckCitations} description={ui.workspace.caseCheckSummary}>
@@ -3883,6 +3478,8 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="draft" className="space-y-6 mt-0">
+          <div className={`flex flex-col lg:flex-row gap-6 ${activePdfUrl ? 'lg:flex-nowrap items-start' : ''}`}>
+               <div className={`flex-1 min-w-0 ${activePdfUrl ? 'lg:max-w-[50%]' : ''}`}>
           <ShellCard
             title={ui.workspace.draftTitle}
             description={ui.workspace.draftDescription}
@@ -3905,6 +3502,14 @@ export default function Home() {
                     </Button>
                     <Button className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200" onClick={() => exportDraftMutation.mutate({ caseId, draftId: activeDraft.id })} disabled={exportDraftMutation.isPending || (!localAutoApprove && activeDraft.status !== "approved")}>
                       {ui.workspace.exportDocx}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="rounded-xl border-stone-300/80 bg-white/92 text-stone-700 shadow-[0_10px_26px_-18px_rgba(31,41,55,0.2)] hover:bg-stone-100/95 hover:text-stone-950 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(26,31,43,0.98)_0%,rgba(17,20,29,0.99)_100%)] dark:text-stone-100 dark:hover:bg-[linear-gradient(180deg,rgba(36,42,57,0.98)_0%,rgba(24,28,38,0.99)_100%)]"
+                      onClick={() => exportCaseBundleMutation.mutate({ caseId })}
+                      disabled={exportCaseBundleMutation.isPending}
+                    >
+                      {exportCaseBundleMutation.isPending ? ui.workspace.exportBundleRunning : ui.workspace.exportBundle}
                     </Button>
                     {reviewHistory[0]?.id ? (
                       <>
@@ -4090,7 +3695,20 @@ export default function Home() {
                                 {(paragraph.annotations ?? []).length ? (
                                   <div className="mt-2 flex flex-wrap gap-2">
                                     {paragraph.annotations.map((annotation: any) => (
-                                      <div key={annotation.id} className="inline-flex max-w-full items-center gap-2 rounded-lg border border-stone-200/90 bg-white px-2.5 py-1.5 text-xs text-stone-700 shadow-sm dark:border-stone-700/60 dark:bg-[linear-gradient(180deg,rgba(18,21,30,0.98)_0%,rgba(10,12,18,0.99)_100%)] dark:text-stone-200">
+                                      <div 
+                                        key={annotation.id} 
+                                        onClick={async () => {
+                                          if (annotation.caseDocumentId && caseId) {
+                                            try {
+                                              const result = await utils.client.judgeAi.cases.downloadUrl.query({ caseId, documentId: annotation.caseDocumentId });
+                                              setActivePdfUrl(result.url);
+                                            } catch (err) {
+                                              console.error("Failed to load PDF URL", err);
+                                            }
+                                          }
+                                        }}
+                                        className="inline-flex max-w-full items-center gap-2 rounded-lg border border-stone-200/90 bg-white px-2.5 py-1.5 text-xs text-stone-700 shadow-sm cursor-pointer hover:bg-stone-50 transition-colors dark:border-stone-700/60 dark:bg-[linear-gradient(180deg,rgba(18,21,30,0.98)_0%,rgba(10,12,18,0.99)_100%)] dark:text-stone-200 dark:hover:bg-stone-800"
+                                      >
                                         <span className="truncate font-semibold">{annotation.sourceLabel}</span>
                                         <StatusPill>{translateToken(locale, annotation.sourceType)}</StatusPill>
                                       </div>
@@ -4105,6 +3723,34 @@ export default function Home() {
                         );
                       })}
                     </div>
+                    <SectionAuthorNote
+                      initialNote={section.authorNote ?? null}
+                      saving={saveSectionNoteMutation.isPending && saveSectionNoteMutation.variables?.sectionId === section.id}
+                      transcribing={transcribeSectionNoteMutation.isPending && transcribeSectionNoteMutation.variables?.sectionId === section.id}
+                      onSave={text => saveSectionNoteMutation.mutate({ caseId: caseId!, sectionId: section.id, authorNote: text.length ? text : null })}
+                      onClear={() => saveSectionNoteMutation.mutate({ caseId: caseId!, sectionId: section.id, authorNote: null })}
+                      onTranscribe={(base64Audio, mimeType, existingText) =>
+                        transcribeSectionNoteMutation.mutate({
+                          caseId: caseId!,
+                          sectionId: section.id,
+                          base64Audio,
+                          mimeType,
+                          append: true,
+                          existingNote: existingText || section.authorNote || null,
+                        })
+                      }
+                      labels={{
+                        title: ui.workspace.authorNoteTitle,
+                        placeholder: ui.workspace.authorNotePlaceholder,
+                        startRecording: ui.workspace.authorNoteStart,
+                        stopRecording: ui.workspace.authorNoteStop,
+                        transcribing: ui.workspace.authorNoteTranscribing,
+                        saveNote: ui.workspace.authorNoteSave,
+                        clearNote: ui.workspace.authorNoteClear,
+                        unsupported: ui.workspace.authorNoteUnsupported,
+                        permissionDenied: ui.workspace.authorNotePermissionDenied,
+                      }}
+                    />
                   </div>
                 ))}
               </div>
@@ -4112,6 +3758,27 @@ export default function Home() {
               <p className="rounded-[1.35rem] border border-dashed border-stone-300/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.78),rgba(244,239,230,0.86))] px-5 py-10 text-sm leading-7 text-stone-500 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(24,28,39,0.96)_0%,rgba(16,19,28,0.98)_100%)] dark:text-stone-300">{ui.workspace.emptyDraft}</p>
             )}
           </ShellCard>
+          </div>
+          {activePdfUrl && (
+            <div className="w-full lg:w-1/2 flex flex-col rounded-[1.35rem] border border-stone-200/80 bg-white/50 shadow-sm dark:border-stone-700/80 dark:bg-stone-900/50 sticky top-4 h-[calc(100vh-2rem)] overflow-hidden">
+               <div className="flex justify-between items-center px-4 py-3 border-b border-stone-200/80 dark:border-stone-700/80 bg-white dark:bg-stone-900 z-10">
+                  <p className="text-sm font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                     <FileText className="w-4 h-4 text-stone-500" />
+                     Document Viewer
+                  </p>
+                  <button onClick={() => setActivePdfUrl(null)} className="text-stone-500 hover:text-stone-900 dark:hover:text-stone-100 transition-colors bg-stone-100/50 hover:bg-stone-200/50 dark:bg-stone-800/50 dark:hover:bg-stone-700/50 rounded-full p-1.5">
+                     <X className="w-4 h-4" />
+                  </button>
+               </div>
+               <div className="flex-1 w-full bg-stone-100/30 dark:bg-black/20 p-2">
+                 <iframe 
+                   src={activePdfUrl} 
+                   className="w-full h-full rounded-xl border border-stone-200/60 dark:border-stone-700/60 shadow-inner bg-white dark:bg-stone-900" 
+                 />
+               </div>
+            </div>
+          )}
+          </div>
           </TabsContent>
 
           <TabsContent value="history" className="space-y-6 mt-0">
@@ -4282,17 +3949,123 @@ export default function Home() {
     );
   }
 
+  function renderUsageDashboard() {
+    const [days, setDays] = [usageDashboardDays, setUsageDashboardDays];
+    const query = usageStatsQuery;
+    const data = query.data;
+    return (
+      <div className="space-y-6">
+        <ShellCard
+          title={ui.admin.usageTitle}
+          description={ui.admin.usageDescription}
+          actions={
+            <select
+              value={days}
+              onChange={event => setDays(Number(event.target.value))}
+              className="h-9 rounded-lg border border-stone-300/80 bg-white px-3 text-sm text-stone-900 shadow-sm focus:border-stone-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-100"
+            >
+              <option value={7}>{ui.admin.usageRange7}</option>
+              <option value={30}>{ui.admin.usageRange30}</option>
+              <option value={90}>{ui.admin.usageRange90}</option>
+            </select>
+          }
+        >
+          {query.isLoading ? (
+            <p className="text-sm text-stone-500 dark:text-stone-400">{ui.admin.usageLoading}</p>
+          ) : data && data.totalRequests > 0 ? (
+            <div className="space-y-5">
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm dark:border-stone-700/80 dark:bg-[#151923]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">{ui.admin.usageRequests}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-stone-950 dark:text-stone-50">{data.totalRequests.toLocaleString()}</p>
+                </div>
+                <div className="rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm dark:border-stone-700/80 dark:bg-[#151923]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">{ui.admin.usageTotalTokens}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-stone-950 dark:text-stone-50">{data.totalTokens.toLocaleString()}</p>
+                </div>
+                <div className="rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm dark:border-stone-700/80 dark:bg-[#151923]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">{ui.admin.usageCompletion}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-stone-950 dark:text-stone-50">{data.totalCompletionTokens.toLocaleString()}</p>
+                </div>
+                <div className="rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm dark:border-stone-700/80 dark:bg-[#151923]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-500 dark:text-stone-400">{ui.admin.usageCacheHit}</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-stone-950 dark:text-stone-50">{(data.cacheHitRate * 100).toFixed(1)}%</p>
+                  <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{data.totalCachedTokens.toLocaleString()} / {data.totalPromptTokens.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-semibold text-stone-900 dark:text-stone-100">{ui.admin.usageByDay}</p>
+                <div className="space-y-1">
+                  {data.byDay.map(row => {
+                    const max = Math.max(...data.byDay.map(d => d.totalTokens), 1);
+                    const pct = (row.totalTokens / max) * 100;
+                    return (
+                      <div key={row.day} className="flex items-center gap-3 text-xs">
+                        <span className="w-24 shrink-0 font-medium text-stone-600 dark:text-stone-300">{row.day}</span>
+                        <div className="relative h-3 flex-1 rounded-full bg-stone-100 dark:bg-stone-800">
+                          <div
+                            className="h-full rounded-full bg-stone-900 dark:bg-stone-100"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="w-28 shrink-0 text-right font-medium tabular-nums text-stone-700 dark:text-stone-200">
+                          {row.totalTokens.toLocaleString()} ({row.requests})
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-semibold text-stone-900 dark:text-stone-100">{ui.admin.usageByProvider}</p>
+                <div className="overflow-hidden rounded-xl border border-stone-200/80 dark:border-stone-700/80">
+                  <table className="w-full text-sm">
+                    <thead className="bg-stone-50 text-xs uppercase tracking-wider text-stone-500 dark:bg-stone-800/50 dark:text-stone-400">
+                      <tr>
+                        <th className="px-3 py-2 text-left">{ui.admin.usageColProvider}</th>
+                        <th className="px-3 py-2 text-right">{ui.admin.usageColRequests}</th>
+                        <th className="px-3 py-2 text-right">{ui.admin.usageColTokens}</th>
+                        <th className="px-3 py-2 text-right">{ui.admin.usageColCached}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.byProvider.map(row => (
+                        <tr key={row.providerName} className="border-t border-stone-200/80 dark:border-stone-700/80">
+                          <td className="px-3 py-2 text-stone-900 dark:text-stone-100">{row.providerName}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-stone-700 dark:text-stone-200">{row.requests.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-stone-700 dark:text-stone-200">{row.totalTokens.toLocaleString()}</td>
+                          <td className="px-3 py-2 text-right tabular-nums text-stone-700 dark:text-stone-200">
+                            {row.cachedTokens.toLocaleString()} ({row.totalTokens > 0 ? ((row.cachedTokens / row.totalTokens) * 100).toFixed(0) : 0}%)
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-stone-500 dark:text-stone-400">{ui.admin.usageEmpty}</p>
+          )}
+        </ShellCard>
+      </div>
+    );
+  }
+
   function renderAdmin() {
     const adminTabsCopy = locale === "el"
       ? { providers: "Πάροχοι AI", users: "Χρήστες", advanced: "Προηγμένες ρυθμίσεις" }
       : { providers: "AI Providers", users: "Users", advanced: "Advanced settings" };
     const isAdmin = user?.role === "admin";
-    const tabColClass = isAdmin ? "grid-cols-3 sm:grid-cols-3" : "grid-cols-1";
+    const tabColClass = isAdmin ? "grid-cols-4 sm:grid-cols-4" : "grid-cols-1";
     return (
       <Tabs defaultValue="providers" className="space-y-6">
         <TabsList className={`grid w-full ${tabColClass} gap-1 rounded-xl border border-stone-200 bg-white p-1 sm:w-auto sm:inline-grid dark:border-white/10 dark:bg-[#151923]`}>
           <TabsTrigger value="providers" className="rounded-lg text-sm">{adminTabsCopy.providers}</TabsTrigger>
           {isAdmin ? <TabsTrigger value="users" className="rounded-lg text-sm">{adminTabsCopy.users}</TabsTrigger> : null}
+          {isAdmin ? <TabsTrigger value="usage" className="rounded-lg text-sm">{ui.admin.usageTabLabel}</TabsTrigger> : null}
           {isAdmin ? <TabsTrigger value="data" className="rounded-lg text-sm">{ui.admin.dataTabLabel}</TabsTrigger> : null}
         </TabsList>
 
@@ -4504,6 +4277,12 @@ export default function Home() {
             </div>
           </ShellCard>
         </TabsContent>
+
+        {isAdmin ? (
+          <TabsContent value="usage" className="space-y-6 mt-0">
+            {renderUsageDashboard()}
+          </TabsContent>
+        ) : null}
 
         {isAdmin ? (
           <TabsContent value="data" className="space-y-6 mt-0">

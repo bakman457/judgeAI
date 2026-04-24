@@ -1,5 +1,6 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, Mic, Square, Save, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export function ShellCard({
   title,
@@ -152,24 +153,199 @@ export function SelectField({ label, value, onChange, options }: { label: string
   );
 }
 
-export function FileField({ label, selectedFile, onChange, selectedPrefix = "Selected file" }: { label: string; selectedFile: File | null; onChange: (file: File | null) => void; selectedPrefix?: string }) {
+export function FileField({ label, selectedFile, onChange, selectedPrefix = "Selected file", accept, hint }: { label: string; selectedFile: File | null; onChange: (file: File | null) => void; selectedPrefix?: string; accept?: string; hint?: string }) {
   return (
     <FieldWrapper label={label}>
       <div className="rounded-xl border border-dashed border-stone-300/90 bg-stone-50 px-4 py-5 shadow-sm dark:border-stone-700/80 dark:bg-white/[0.04]">
-        <input type="file" onChange={event => onChange(event.target.files?.[0] ?? null)} className="block w-full text-sm text-stone-700 file:mr-4 file:rounded-lg file:border-0 file:bg-stone-900 file:px-3.5 file:py-2.5 file:text-sm file:font-medium file:text-stone-50 dark:text-stone-200 dark:file:bg-stone-100 dark:file:text-stone-900" />
+        <input type="file" accept={accept} onChange={event => onChange(event.target.files?.[0] ?? null)} className="block w-full text-sm text-stone-700 file:mr-4 file:rounded-lg file:border-0 file:bg-stone-900 file:px-3.5 file:py-2.5 file:text-sm file:font-medium file:text-stone-50 dark:text-stone-200 dark:file:bg-stone-100 dark:file:text-stone-900" />
+        {hint ? <p className="mt-2 text-xs leading-5 text-stone-500 dark:text-stone-400">{hint}</p> : null}
         {selectedFile ? <p className="mt-3 text-sm text-stone-600 dark:text-stone-200">{selectedPrefix}: {selectedFile.name}</p> : null}
       </div>
     </FieldWrapper>
   );
 }
 
-export function MultiFileField({ label, selectedFiles, onChange, selectedPrefix = "Selected files" }: { label: string; selectedFiles: File[]; onChange: (files: File[]) => void; selectedPrefix?: string }) {
+export function MultiFileField({ label, selectedFiles, onChange, selectedPrefix = "Selected files", accept, hint }: { label: string; selectedFiles: File[]; onChange: (files: File[]) => void; selectedPrefix?: string; accept?: string; hint?: string }) {
   return (
     <FieldWrapper label={label}>
       <div className="rounded-xl border border-dashed border-stone-300/90 bg-stone-50 px-4 py-5 shadow-sm dark:border-stone-700/80 dark:bg-white/[0.04]">
-        <input type="file" multiple onChange={event => onChange(Array.from(event.target.files ?? []))} className="block w-full text-sm text-stone-700 file:mr-4 file:rounded-lg file:border-0 file:bg-stone-900 file:px-3.5 file:py-2.5 file:text-sm file:font-medium file:text-stone-50 dark:text-stone-200 dark:file:bg-stone-100 dark:file:text-stone-900" />
+        <input type="file" multiple accept={accept} onChange={event => onChange(Array.from(event.target.files ?? []))} className="block w-full text-sm text-stone-700 file:mr-4 file:rounded-lg file:border-0 file:bg-stone-900 file:px-3.5 file:py-2.5 file:text-sm file:font-medium file:text-stone-50 dark:text-stone-200 dark:file:bg-stone-100 dark:file:text-stone-900" />
+        {hint ? <p className="mt-2 text-xs leading-5 text-stone-500 dark:text-stone-400">{hint}</p> : null}
         {selectedFiles.length ? <p className="mt-3 text-sm text-stone-600 dark:text-stone-200">{selectedPrefix}: {selectedFiles.map(file => file.name).join(", ")}</p> : null}
       </div>
     </FieldWrapper>
+  );
+}
+
+export type SectionAuthorNoteLabels = {
+  title: string;
+  placeholder: string;
+  startRecording: string;
+  stopRecording: string;
+  transcribing: string;
+  saveNote: string;
+  clearNote: string;
+  unsupported: string;
+  permissionDenied: string;
+};
+
+/**
+ * Voice-note capture + text editor attached to a draft section. Records via
+ * the browser MediaRecorder API, hands the audio blob to the transcription
+ * mutation, and shows/edits the saved note. The parent supplies handlers so
+ * actual state lives with the draft section list.
+ */
+export function SectionAuthorNote({
+  initialNote,
+  disabled,
+  saving,
+  transcribing,
+  onSave,
+  onClear,
+  onTranscribe,
+  labels,
+}: {
+  initialNote: string | null;
+  disabled?: boolean;
+  saving?: boolean;
+  transcribing?: boolean;
+  onSave: (text: string) => void;
+  onClear: () => void;
+  onTranscribe: (base64Audio: string, mimeType: string, existingText: string) => void;
+  labels: SectionAuthorNoteLabels;
+}) {
+  const [text, setText] = useState<string>(initialNote ?? "");
+  const [isRecording, setIsRecording] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    setText(initialNote ?? "");
+  }, [initialNote]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        recorderRef.current?.stop();
+      } catch {
+        // ignore
+      }
+      streamRef.current?.getTracks().forEach(track => track.stop());
+    };
+  }, []);
+
+  async function startRecording() {
+    setError(null);
+    if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") {
+      setError(labels.unsupported);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/mp4")
+        ? "audio/mp4"
+        : "";
+      const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = event => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
+      recorder.onstop = async () => {
+        const type = recorder.mimeType || "audio/webm";
+        const blob = new Blob(chunksRef.current, { type });
+        chunksRef.current = [];
+        streamRef.current?.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+        const arrayBuffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+        const base64 = btoa(binary);
+        onTranscribe(base64, type.split(";")[0], text);
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      setError(labels.permissionDenied);
+      console.error("[VoiceNote] Recording failed:", err);
+    }
+  }
+
+  function stopRecording() {
+    if (recorderRef.current && recorderRef.current.state !== "inactive") {
+      recorderRef.current.stop();
+    }
+    setIsRecording(false);
+  }
+
+  const anyPending = Boolean(saving || transcribing);
+  return (
+    <div className="mt-4 rounded-xl border border-stone-200/80 bg-white/60 p-3 dark:border-stone-700/80 dark:bg-white/[0.03]">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500 dark:text-stone-400">
+          {labels.title}
+        </span>
+        <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          {isRecording ? (
+            <button
+              type="button"
+              onClick={stopRecording}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400 bg-rose-500 px-2.5 py-1 text-xs font-medium text-white transition hover:bg-rose-600"
+            >
+              <Square className="h-3.5 w-3.5" />
+              {labels.stopRecording}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={startRecording}
+              disabled={disabled || anyPending}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 transition hover:bg-stone-100 disabled:opacity-50 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+            >
+              <Mic className="h-3.5 w-3.5" />
+              {transcribing ? labels.transcribing : labels.startRecording}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onSave(text)}
+            disabled={disabled || anyPending || text === (initialNote ?? "")}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-700 transition hover:bg-stone-100 disabled:opacity-50 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-200 dark:hover:bg-stone-700"
+          >
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            {labels.saveNote}
+          </button>
+          {initialNote ? (
+            <button
+              type="button"
+              onClick={() => {
+                setText("");
+                onClear();
+              }}
+              disabled={disabled || anyPending}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-2.5 py-1 text-xs font-medium text-stone-600 transition hover:bg-stone-100 disabled:opacity-50 dark:border-stone-600 dark:bg-stone-800 dark:text-stone-300 dark:hover:bg-stone-700"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {labels.clearNote}
+            </button>
+          ) : null}
+        </div>
+      </div>
+      <textarea
+        value={text}
+        onChange={event => setText(event.target.value)}
+        placeholder={labels.placeholder}
+        className="min-h-[60px] w-full rounded-lg border border-stone-300/80 bg-white px-3 py-2 text-sm text-stone-900 outline-none focus:border-stone-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-100 dark:focus:border-stone-400"
+      />
+      {error ? <p className="mt-2 text-xs text-rose-600 dark:text-rose-300">{error}</p> : null}
+    </div>
   );
 }

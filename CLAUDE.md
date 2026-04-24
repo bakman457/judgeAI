@@ -39,14 +39,18 @@ Client → tRPC procedures (defined in [server/judgeAiRouter.ts](server/judgeAiR
 
 ### Key Files
 
-- [server/judgeAiService.ts](server/judgeAiService.ts) — ~2800 lines, all core business logic: document ingestion, AI draft generation, review/quality assessment, DOCX export, audit logging
+- [server/judgeAiService.ts](server/judgeAiService.ts) — ~3800 lines, core business logic: document ingestion, AI draft generation, review/quality assessment, DOCX export, audit logging. Delegates OCR to [server/ocr/](server/ocr/) and audio transcription to [server/audioTranscription.ts](server/audioTranscription.ts)
 - [server/judgeAiRouter.ts](server/judgeAiRouter.ts) — tRPC route definitions for all API procedures
 - [server/db.ts](server/db.ts) — Drizzle ORM data access layer (all queries here, not in service)
+- [server/ocr/](server/ocr/) — Pluggable OCR module (`OcrService` + `TesseractOcrProvider`); used when PDF parse yields insufficient text
+- [server/audioTranscription.ts](server/audioTranscription.ts) — Whisper-tiny (via `@xenova/transformers`) with `fluent-ffmpeg` + static FFmpeg binary for on-device audio→text
+- [server/schemaRepair.ts](server/schemaRepair.ts) — Runtime Drizzle schema reconciliation utilities
 - [drizzle/schema.ts](drizzle/schema.ts) — Full database schema (entities, enums, constraints)
 - [server/_core/index.ts](server/_core/index.ts) — Express app setup, middleware, port binding; **also seeds DeepSeek + Kimi provider keys on every startup** and upserts the `desktop-local-user` admin
 - [server/routers.ts](server/routers.ts) — Top-level tRPC `appRouter` (mounts `system`, `auth`, `judgeAi`)
 - [server/_core/llm.ts](server/_core/llm.ts) — LLM provider abstraction (OpenAI, Azure, Alibaba, Kimi, Deepseek, custom)
 - [client/src/App.tsx](client/src/App.tsx) — Frontend root with Wouter routing and protected route logic
+- [client/src/locales/translations.ts](client/src/locales/translations.ts) — Central English/Greek translation bundle consumed by `LocaleContext`
 - [vite.config.ts](vite.config.ts) — Vite config with custom debug-logging plugin
 
 ### Database Schema (Drizzle)
@@ -60,7 +64,7 @@ Core entity relationships:
 
 ### AI Drafting Pipeline
 
-1. Case documents uploaded → `processingJobs` queue → text extracted (pdf-parse / mammoth for DOCX)
+1. Case documents uploaded → `processingJobs` queue → text extracted (pdf-parse / mammoth for DOCX; Tesseract OCR fallback for scanned PDFs; Whisper for audio)
 2. `generateStructuredDraft()` retrieves case context + knowledge base, calls LLM provider
 3. Draft stored as 5 fixed sections: `header`, `facts`, `issues`, `reasoning`, `operative_part`
 4. Each section has paragraphs; paragraphs have annotations referencing law/evidence/precedent
@@ -76,7 +80,7 @@ Core entity relationships:
 
 ### Frontend Contexts
 
-- `LocaleContext` — English/Greek i18n switching (translation keys in component files)
+- `LocaleContext` — English/Greek i18n switching (translation bundle in [client/src/locales/translations.ts](client/src/locales/translations.ts))
 - `ThemeContext` — light/dark mode toggle
 - `useAuth()` hook ([client/src/_core/](client/src/_core/)) — auth state, role checks, redirect logic
 
@@ -104,7 +108,7 @@ LLM provider keys stored encrypted in `aiProviderSettings` table, not in `.env`.
 
 - File upload limit: 50 MB
 - Rate limit: 120 req / 60s per IP
-- Supported document types: PDF, DOCX, plain text
+- Supported document types: PDF (native + OCR), DOCX, plain text, audio (WAV/MP3/etc. via Whisper)
 - Database: MariaDB 10.11+ or MySQL 8.0+ (uses `json` columns and window functions)
 - Node.js: 22+
 - Target platform for builds: Windows x64

@@ -7,7 +7,7 @@ await build({
   ...config,
   build: {
     ...config.build,
-    copyPublicDir: false,
+    copyPublicDir: true,
     emptyOutDir: false,
     rollupOptions: {
       ...config.build?.rollupOptions,

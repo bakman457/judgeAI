@@ -26,8 +26,10 @@ import {
   approveDraftAndLog,
   exportCaseReviewReport,
   exportDraftAsDocx,
+  exportCaseBundle,
   generateStructuredDraft,
   getCaseTimeline,
+  listCasesWithStaleReview,
   getReviewApprovalThresholds,
   batchImportCaseDocuments,
   batchImportKnowledgeDocuments,
@@ -40,15 +42,24 @@ import {
   ingestKnowledgeDocument,
   analyzeJudgeStyleProfile,
   runSearch,
+  runCrossCaseSearch,
+  getUsageDashboardStats,
   saveProviderSettings,
   saveReviewApprovalThreshold,
   testProviderConnectivity,
   reviewCaseAgainstEvidence,
+  reviewCasesBatch,
+  listFindingResolutions,
+  saveFindingResolution,
+  removeFindingResolution,
+  explainFinding,
   getOcrSettingsForAdmin,
   saveOcrSettingsForAdmin,
   testOcrProvider,
   updateDraftParagraphWithAudit,
   updateDraftSectionReview,
+  saveSectionAuthorNote,
+  transcribeAndSaveSectionNote,
 } from "./judgeAiService";
 import { adminProcedure, protectedProcedure, router } from "./_core/trpc";
 
@@ -91,6 +102,9 @@ async function assertCaseAccess(caseId: number, user: { id: number; role: "judge
 export const judgeAiRouter = router({
   admin: router({
     listUsers: adminProcedure.query(async () => listUsers()),
+    usageStats: adminProcedure
+      .input(z.object({ days: z.coerce.number().int().min(1).max(365).default(30) }).optional())
+      .query(async ({ input }) => getUsageDashboardStats(input?.days ?? 30)),
     updateUser: adminProcedure
       .input(
         z.object({
@@ -121,6 +135,7 @@ export const judgeAiRouter = router({
           defaultSystemPrompt: z.string().max(20000).nullable().optional(),
           draftTemperature: z.string().max(12).nullable().optional(),
           maxTokens: z.coerce.number().int().min(256).max(65536).nullable().optional(),
+          fallbackOrder: z.coerce.number().int().min(0).max(999).nullable().optional(),
           isActive: z.boolean().optional(),
           isArchived: z.boolean().optional(),
         }),
@@ -472,12 +487,20 @@ export const judgeAiRouter = router({
         await assertCaseAccess(input.caseId, ctx.user);
         return getCaseTimeline(input.caseId);
       }),
+    staleReviews: protectedProcedure.query(async ({ ctx }) =>
+      listCasesWithStaleReview(ctx.user.id, ctx.user.role as "judge" | "admin"),
+    ),
     search: protectedProcedure
       .input(z.object({ caseId: z.coerce.number().int().positive(), query: z.string().min(1).max(255) }))
       .query(async ({ ctx, input }) => {
         await assertCaseAccess(input.caseId, ctx.user);
         return runSearch(input.caseId, input.query);
       }),
+    crossCaseSearch: protectedProcedure
+      .input(z.object({ query: z.string().min(2).max(255) }))
+      .query(async ({ ctx, input }) =>
+        runCrossCaseSearch(ctx.user.id, ctx.user.role as "judge" | "admin", input.query),
+      ),
     reviewThresholds: protectedProcedure.query(async ({ ctx }) => getReviewApprovalThresholds(ctx.user.id)),
     saveReviewThreshold: protectedProcedure
       .input(
@@ -515,6 +538,101 @@ export const judgeAiRouter = router({
           providerId: input.providerId ?? null,
           reviewTemplateKey: input.reviewTemplateKey,
           reviewTemplateFocus: input.reviewTemplateFocus ?? null,
+        });
+      }),
+    findingResolutions: protectedProcedure
+      .input(z.object({ caseId: z.coerce.number().int().positive(), reviewSnapshotId: z.coerce.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        await assertCaseAccess(input.caseId, ctx.user);
+        return listFindingResolutions({ caseId: input.caseId, reviewSnapshotId: input.reviewSnapshotId });
+      }),
+    setFindingResolution: protectedProcedure
+      .input(
+        z.object({
+          caseId: z.coerce.number().int().positive(),
+          reviewSnapshotId: z.coerce.number().int().positive(),
+          findingIndex: z.coerce.number().int().min(0).max(999),
+          status: z.enum(["addressed", "accepted", "deferred"]),
+          note: z.string().max(2000).nullable().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await assertCaseAccess(input.caseId, ctx.user);
+        return saveFindingResolution({
+          caseId: input.caseId,
+          reviewSnapshotId: input.reviewSnapshotId,
+          findingIndex: input.findingIndex,
+          status: input.status,
+          note: input.note ?? null,
+          userId: ctx.user.id,
+        });
+      }),
+    clearFindingResolution: protectedProcedure
+      .input(
+        z.object({
+          caseId: z.coerce.number().int().positive(),
+          reviewSnapshotId: z.coerce.number().int().positive(),
+          findingIndex: z.coerce.number().int().min(0).max(999),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await assertCaseAccess(input.caseId, ctx.user);
+        return removeFindingResolution({
+          caseId: input.caseId,
+          reviewSnapshotId: input.reviewSnapshotId,
+          findingIndex: input.findingIndex,
+        });
+      }),
+    explainFinding: protectedProcedure
+      .input(
+        z.object({
+          caseId: z.coerce.number().int().positive(),
+          reviewSnapshotId: z.coerce.number().int().positive(),
+          findingIndex: z.coerce.number().int().min(0).max(999),
+          providerId: z.coerce.number().int().positive().nullable().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await assertCaseAccess(input.caseId, ctx.user);
+        return explainFinding({
+          caseId: input.caseId,
+          reviewSnapshotId: input.reviewSnapshotId,
+          findingIndex: input.findingIndex,
+          providerId: input.providerId ?? null,
+          userId: ctx.user.id,
+          userRole: ctx.user.role as "judge" | "admin",
+        });
+      }),
+    reviewBatch: protectedProcedure
+      .input(
+        z.object({
+          caseIds: z.array(z.coerce.number().int().positive()).min(1).max(25),
+          providerId: z.coerce.number().int().positive().nullable().optional(),
+          reviewTemplateKey: z.enum(["inheritance"]).optional(),
+          reviewTemplateFocus: z.string().max(1200).nullable().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        for (const caseId of input.caseIds) {
+          await assertCaseAccess(caseId, ctx.user);
+        }
+        return reviewCasesBatch({
+          caseIds: input.caseIds,
+          userId: ctx.user.id,
+          userRole: ctx.user.role as "judge" | "admin",
+          providerId: input.providerId ?? null,
+          reviewTemplateKey: input.reviewTemplateKey,
+          reviewTemplateFocus: input.reviewTemplateFocus ?? null,
+        });
+      }),
+    exportBundle: protectedProcedure
+      .input(z.object({ caseId: z.coerce.number().int().positive() }))
+      .mutation(async ({ ctx, input }) => {
+        await assertCaseAccess(input.caseId, ctx.user);
+        return exportCaseBundle({
+          caseId: input.caseId,
+          userId: ctx.user.id,
+          userRole: ctx.user.role as "judge" | "admin",
         });
       }),
     exportReviewReport: protectedProcedure
@@ -582,6 +700,7 @@ export const judgeAiRouter = router({
           status: job.status,
           stage: (job.resultJson as any)?.stage ?? "preparing",
           message: (job.resultJson as any)?.message ?? "",
+          streamedChars: (job.resultJson as any)?.streamedChars ?? null,
           createdAt: job.createdAt,
           updatedAt: job.updatedAt,
           errorMessage: job.errorMessage,
@@ -654,6 +773,54 @@ export const judgeAiRouter = router({
         return updateDraftSectionReview({
           ...input,
           userId: ctx.user.id,
+        });
+      }),
+    saveSectionNote: protectedProcedure
+      .input(
+        z.object({
+          caseId: z.coerce.number().int().positive(),
+          sectionId: z.coerce.number().int().positive(),
+          authorNote: z.string().max(20000).nullable(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await assertCaseAccess(input.caseId, ctx.user);
+        const sectionCaseId = await getDraftSectionCaseId(input.sectionId);
+        if (sectionCaseId !== input.caseId) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Section not found in this case" });
+        }
+        return saveSectionAuthorNote({
+          sectionId: input.sectionId,
+          caseId: input.caseId,
+          userId: ctx.user.id,
+          authorNote: input.authorNote,
+        });
+      }),
+    transcribeSectionNote: protectedProcedure
+      .input(
+        z.object({
+          caseId: z.coerce.number().int().positive(),
+          sectionId: z.coerce.number().int().positive(),
+          base64Audio: z.string().min(1),
+          mimeType: z.string().min(1).max(120),
+          append: z.boolean().default(true),
+          existingNote: z.string().max(20000).nullable().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        await assertCaseAccess(input.caseId, ctx.user);
+        const sectionCaseId = await getDraftSectionCaseId(input.sectionId);
+        if (sectionCaseId !== input.caseId) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Section not found in this case" });
+        }
+        return transcribeAndSaveSectionNote({
+          sectionId: input.sectionId,
+          caseId: input.caseId,
+          userId: ctx.user.id,
+          base64Audio: input.base64Audio,
+          mimeType: input.mimeType,
+          append: input.append,
+          existingNote: input.existingNote ?? null,
         });
       }),
     approve: protectedProcedure

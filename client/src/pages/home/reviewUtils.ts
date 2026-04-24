@@ -57,6 +57,15 @@ export type CaseReviewResult = {
   thresholdEvaluation?: {
     blockers?: string[];
   };
+  appellateStressTest?: {
+    strongestOpposingArgument?: string;
+    rebuttalSuggestion?: string;
+  };
+  chronologicalEvents?: {
+    date: string;
+    event: string;
+    significance: "high" | "medium" | "low";
+  }[];
 };
 
 export type ReviewSnapshot = {

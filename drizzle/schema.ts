@@ -74,6 +74,10 @@ export const aiProviderSettings = mysqlTable(
     maxTokens: int("maxTokens").default(8000).notNull(),
     isActive: boolean("isActive").default(false).notNull(),
     isArchived: boolean("isArchived").default(false).notNull(),
+    // Lower numbers run earlier. When the active provider fails with a
+    // retryable error (timeout, 5xx, empty stream, etc.), the next enabled
+    // provider in ascending fallbackOrder is tried automatically.
+    fallbackOrder: int("fallbackOrder").default(100).notNull(),
     createdBy: int("createdBy").references(() => users.id, { onDelete: "set null" }),
     updatedBy: int("updatedBy").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -82,8 +86,35 @@ export const aiProviderSettings = mysqlTable(
   table => ({
     activeIdx: index("ai_provider_settings_active_idx").on(table.isActive),
     providerIdx: index("ai_provider_settings_provider_idx").on(table.providerType),
+    fallbackOrderIdx: index("ai_provider_settings_fallback_order_idx").on(table.fallbackOrder),
   }),
 );
+
+export const aiUsageEvents = mysqlTable(
+  "ai_usage_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    providerId: int("providerId").references(() => aiProviderSettings.id, { onDelete: "set null" }),
+    providerName: varchar("providerName", { length: 180 }),
+    model: varchar("model", { length: 180 }),
+    caseId: int("caseId").references(() => cases.id, { onDelete: "set null" }),
+    userId: int("userId").references(() => users.id, { onDelete: "set null" }),
+    kind: varchar("kind", { length: 32 }).notNull(), // "draft" | "review" | "simple" | "failover_fallback"
+    promptTokens: int("promptTokens").default(0).notNull(),
+    completionTokens: int("completionTokens").default(0).notNull(),
+    totalTokens: int("totalTokens").default(0).notNull(),
+    cachedTokens: int("cachedTokens").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    createdAtIdx: index("ai_usage_events_created_at_idx").on(table.createdAt),
+    providerIdx: index("ai_usage_events_provider_idx").on(table.providerId),
+    caseIdx: index("ai_usage_events_case_idx").on(table.caseId),
+  }),
+);
+
+export type AiUsageEvent = typeof aiUsageEvents.$inferSelect;
+export type InsertAiUsageEvent = typeof aiUsageEvents.$inferInsert;
 
 export const ocrSettings = mysqlTable(
   "ocr_settings",
@@ -304,6 +335,7 @@ export const draftSections = mysqlTable(
     sectionOrder: int("sectionOrder").notNull(),
     sectionText: text("sectionText").notNull(),
     reviewStatus: mysqlEnum("reviewStatus", ["draft", "reviewed", "approved"]).default("draft").notNull(),
+    authorNote: text("authorNote"),
     lastEditedBy: int("lastEditedBy").references(() => users.id, { onDelete: "set null" }),
     approvedBy: int("approvedBy").references(() => users.id, { onDelete: "set null" }),
     approvedAt: timestamp("approvedAt"),
@@ -427,6 +459,29 @@ export const caseReviewSnapshots = mysqlTable(
   }),
 );
 
+export const reviewFindingResolutions = mysqlTable(
+  "review_finding_resolutions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    reviewSnapshotId: int("reviewSnapshotId")
+      .notNull()
+      .references(() => caseReviewSnapshots.id, { onDelete: "cascade" }),
+    findingIndex: int("findingIndex").notNull(),
+    status: mysqlEnum("status", ["addressed", "accepted", "deferred"]).notNull(),
+    note: text("note"),
+    resolvedBy: int("resolvedBy").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    uniqueSnapshotFinding: uniqueIndex("review_finding_resolutions_unique_idx").on(
+      table.reviewSnapshotId,
+      table.findingIndex,
+    ),
+    snapshotIdx: index("review_finding_resolutions_snapshot_idx").on(table.reviewSnapshotId),
+  }),
+);
+
 export const decisionExports = mysqlTable(
   "decision_exports",
   {
@@ -522,6 +577,9 @@ export type InsertReviewApprovalThreshold = typeof reviewApprovalThresholds.$inf
 
 export type CaseReviewSnapshot = typeof caseReviewSnapshots.$inferSelect;
 export type InsertCaseReviewSnapshot = typeof caseReviewSnapshots.$inferInsert;
+
+export type ReviewFindingResolution = typeof reviewFindingResolutions.$inferSelect;
+export type InsertReviewFindingResolution = typeof reviewFindingResolutions.$inferInsert;
 
 export type DecisionExport = typeof decisionExports.$inferSelect;
 export type InsertDecisionExport = typeof decisionExports.$inferInsert;
