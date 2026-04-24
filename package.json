@@ -148,7 +148,8 @@
     "build:exe": "npm run build && npm run build:cjs && pkg dist/index.cjs --out-path dist/exe --targets node22-win-x64 && xcopy /E /I /Y dist\\public dist\\exe\\public",
     "dist:win": "npm run build && npm run build:cjs && node scripts/build-win.mjs",
     "build:setup": "node scripts/build-setup.mjs",
-    "build:installer": "electron-builder --win --x64"
+    "build:installer": "electron-builder --win --x64",
+    "dist:mac": "npm run build && npm run build:cjs && electron-builder --mac"
   },
   "build": {
     "appId": "com.judgeai.app",
@@ -171,6 +172,11 @@
         ]
       }
     ],
+    "mac": {
+      "target": ["dmg", "zip"],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.ico"
+    },
     "win": {
       "target": "nsis"
     },
