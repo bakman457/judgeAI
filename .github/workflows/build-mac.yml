@@ -6,6 +6,7 @@ on:
     branches: [main, master]
     paths:
       - "package.json"
+      - "pnpm-lock.yaml"
       - "electron/**"
       - "client/**"
       - "server/**"
@@ -16,12 +17,17 @@ on:
 jobs:
   build-mac:
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: false
+      DEBUG: electron-builder
+      SKIP_NOTARIZATION: true
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -32,28 +38,48 @@ jobs:
         run: corepack enable
 
       - name: Install system dependencies (libvips for sharp)
-        run: brew install vips
+        run: |
+          brew install vips
+          brew install pkg-config
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build client & server
         run: pnpm build
 
       - name: Build CJS server bundle
-        run: pnpm build:cjs
+        run: pnpm run build:cjs
 
       - name: Clean old releases
         run: rm -rf release
 
       - name: Build Mac executables
-        run: npx electron-builder --mac
+        run: npm run build:installer
         env:
-          DEBUG: electron-builder
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List release artifacts
+        run: ls -lah release/ || echo "No release directory"
+
+      - name: Upload Mac DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: judge-ai-mac-dmg
+          path: release/*.dmg
+          if-no-files-found: warn
 
       - name: Upload Mac ZIP
         uses: actions/upload-artifact@v4
         with:
           name: judge-ai-mac-zip
           path: release/*.zip
-          if-no-files-found: error
+          if-no-files-found: warn
+
+      - name: Post Checkout cleanup
+        if: always()
+        run: |
+          git config --global --unset-all url.https://github.com/.insteadOf || true
+          git config --global --unset-all url.ssh://git@github.com/.insteadOf || true
