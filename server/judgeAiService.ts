@@ -7,7 +7,7 @@ import { OcrService, TesseractOcrProvider } from "./ocr";
 import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { TRPCError } from "@trpc/server";
-import { transcribeAudioBuffer } from "./audioTranscription";
+
 import {
   approveDraft,
   createCaseDocument,
@@ -816,6 +816,7 @@ async function extractSearchableTextImpl(fileName: string, mimeType: string, buf
   // Audio files (hearings, voice notes)
   if (mimeType.startsWith("audio/")) {
     try {
+      const { transcribeAudioBuffer } = await import("./audioTranscription");
       const transcribedText = await transcribeAudioBuffer(buffer);
       return normalizeText(transcribedText, 80_000);
     } catch (err: any) {
@@ -2976,6 +2977,7 @@ export async function transcribeAndSaveSectionNote(input: {
   if (!input.mimeType.startsWith("audio/")) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Expected an audio/* MIME type for voice notes." });
   }
+  const { transcribeAudioBuffer } = await import("./audioTranscription");
   const transcript = (await transcribeAudioBuffer(buffer)).trim();
   if (!transcript) {
     throw new TRPCError({ code: "BAD_REQUEST", message: "Transcription produced no text — try recording a clearer audio clip." });

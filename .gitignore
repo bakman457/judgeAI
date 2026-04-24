@@ -126,6 +126,10 @@ ddl_recovery*
 
 # Encryption salt (machine-specific secret)
 .encryption-salt
+.encryption-salt.backup
+
+# Serena / IDE metadata
+.serena/
 
 # User uploads (case files etc — sensitive)
 uploads/

@@ -82,6 +82,77 @@ async function ensureProviderSettingsSchema(connection: mysql.Connection) {
     "maxTokens",
     "ALTER TABLE `ai_provider_settings` ADD COLUMN `maxTokens` INT NOT NULL DEFAULT 8000",
   );
+
+  await ensureColumn(
+    connection,
+    "ai_provider_settings",
+    "fallbackOrder",
+    "ALTER TABLE `ai_provider_settings` ADD COLUMN `fallbackOrder` INT NOT NULL DEFAULT 100",
+  );
+}
+
+async function ensureDraftSectionsSchema(connection: mysql.Connection) {
+  if (!(await tableExists(connection, "draft_sections"))) {
+    console.log("[SchemaRepair] draft_sections table does not exist yet — Drizzle will create it");
+    return;
+  }
+  await ensureColumn(
+    connection,
+    "draft_sections",
+    "authorNote",
+    "ALTER TABLE `draft_sections` ADD COLUMN `authorNote` TEXT NULL",
+  );
+}
+
+async function ensureReviewFindingResolutionsTable(connection: mysql.Connection) {
+  if (await tableExists(connection, "review_finding_resolutions")) return;
+  if (!(await tableExists(connection, "case_review_snapshots"))) {
+    console.log("[SchemaRepair] case_review_snapshots missing — skipping review_finding_resolutions for now");
+    return;
+  }
+  console.log("[SchemaRepair] Creating review_finding_resolutions table");
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS \`review_finding_resolutions\` (
+      \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+      \`reviewSnapshotId\` INT NOT NULL,
+      \`findingIndex\` INT NOT NULL,
+      \`status\` ENUM('addressed','accepted','deferred') NOT NULL,
+      \`note\` TEXT NULL,
+      \`resolvedBy\` INT NULL,
+      \`createdAt\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      \`updatedAt\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY \`review_finding_resolutions_unique_idx\` (\`reviewSnapshotId\`, \`findingIndex\`),
+      INDEX \`review_finding_resolutions_snapshot_idx\` (\`reviewSnapshotId\`),
+      CONSTRAINT \`review_finding_resolutions_snapshot_fk\`
+        FOREIGN KEY (\`reviewSnapshotId\`) REFERENCES \`case_review_snapshots\`(\`id\`) ON DELETE CASCADE,
+      CONSTRAINT \`review_finding_resolutions_user_fk\`
+        FOREIGN KEY (\`resolvedBy\`) REFERENCES \`users\`(\`id\`) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
+}
+
+async function ensureAiUsageEventsTable(connection: mysql.Connection) {
+  if (await tableExists(connection, "ai_usage_events")) return;
+  console.log("[SchemaRepair] Creating ai_usage_events table");
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS \`ai_usage_events\` (
+      \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+      \`providerId\` INT NULL,
+      \`providerName\` VARCHAR(180) NULL,
+      \`model\` VARCHAR(180) NULL,
+      \`caseId\` INT NULL,
+      \`userId\` INT NULL,
+      \`kind\` VARCHAR(32) NOT NULL,
+      \`promptTokens\` INT NOT NULL DEFAULT 0,
+      \`completionTokens\` INT NOT NULL DEFAULT 0,
+      \`totalTokens\` INT NOT NULL DEFAULT 0,
+      \`cachedTokens\` INT NOT NULL DEFAULT 0,
+      \`createdAt\` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX \`ai_usage_events_created_at_idx\` (\`createdAt\`),
+      INDEX \`ai_usage_events_provider_idx\` (\`providerId\`),
+      INDEX \`ai_usage_events_case_idx\` (\`caseId\`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `);
 }
 
 async function ensureOcrSettingsSchema(connection: mysql.Connection) {
@@ -155,6 +226,9 @@ export async function ensureCurrentDatabaseSchema() {
         await ensureProviderSettingsSchema(connection);
         await ensureOcrSettingsSchema(connection);
         await ensureInheritanceReviewSchema(connection);
+        await ensureDraftSectionsSchema(connection);
+        await ensureReviewFindingResolutionsTable(connection);
+        await ensureAiUsageEventsTable(connection);
         console.log("[SchemaRepair] Schema repair complete");
       } catch (err) {
         console.error("[SchemaRepair] Schema repair failed:", err);

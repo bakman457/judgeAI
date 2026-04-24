@@ -1102,11 +1102,11 @@ export default function Home() {
 
   const activeDraft = useMemo(() => workspaceQuery.data?.latestDraft ?? null, [workspaceQuery.data]);
   const latestDraftText = useMemo(
-    () => activeDraft?.sections.map((section: any) => `${section.sectionTitle}\n${section.sectionText}`).join("\n\n") ?? "",
+    () => activeDraft?.sections?.map((section: any) => `${section.sectionTitle}\n${section.sectionText}`).join("\n\n") ?? "",
     [activeDraft],
   );
   const latestReasoningText = useMemo(
-    () => activeDraft?.sections.find((section: any) => section.sectionKey === "reasoning")?.sectionText ?? "",
+    () => activeDraft?.sections?.find((section: any) => section.sectionKey === "reasoning")?.sectionText ?? "",
     [activeDraft],
   );
   const reviewHistory = useMemo(() => (workspaceQuery.data?.reviewHistory ?? []) as ReviewSnapshot[], [workspaceQuery.data]);
@@ -3558,7 +3558,7 @@ export default function Home() {
                   <StatusPill>{translateToken(locale, activeDraft.status)}</StatusPill>
                   <StatusPill>{translateToken(locale, activeDraft.generationMode)}</StatusPill>
                 </div>
-                {activeDraft.sections.map((section: any) => (
+                {activeDraft.sections?.map((section: any) => (
                   <div key={section.id} className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4 md:p-5 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(23,27,38,0.96)_0%,rgba(15,18,27,0.98)_100%)]">
                     <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <div>
@@ -3578,7 +3578,7 @@ export default function Home() {
                       </div>
                     </div>
                     <div className="space-y-4">
-                      {section.paragraphs.map((paragraph: any) => {
+                      {section.paragraphs?.map((paragraph: any) => {
                         const draftState = paragraphDrafts[paragraph.id] ?? {
                           paragraphText: paragraph.paragraphText,
                           rationale: paragraph.rationale ?? "",
