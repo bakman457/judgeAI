@@ -43,8 +43,13 @@ jobs:
       - name: Build CJS server bundle
         run: pnpm build:cjs
 
+      - name: Clean old releases
+        run: rm -rf release
+
       - name: Build Mac executables
         run: npx electron-builder --mac
+        env:
+          DEBUG: electron-builder
 
       - name: Upload Mac ZIP
         uses: actions/upload-artifact@v4
