@@ -17,7 +17,7 @@ on:
 jobs:
   build-mac:
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: false
       DEBUG: electron-builder
@@ -33,6 +33,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
       - name: Enable Corepack
         run: corepack enable
@@ -44,42 +45,22 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build client & server
-        run: pnpm build
-
-      - name: Build CJS server bundle
-        run: pnpm run build:cjs
-
-      - name: Clean old releases
-        run: rm -rf release
-
-      - name: Build Mac executables
-        run: npm run build:installer
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build macOS distributable
+        run: npm run dist:mac
 
       - name: List release artifacts
-        run: ls -lah release/ || echo "No release directory"
-
-      - name: Upload Mac DMG
-        uses: actions/upload-artifact@v4
-        with:
-          name: judge-ai-mac-dmg
-          path: release/*.dmg
-          if-no-files-found: warn
-
-      - name: Upload Mac ZIP
-        uses: actions/upload-artifact@v4
-        with:
-          name: judge-ai-mac-zip
-          path: release/*.zip
-          if-no-files-found: warn
-
-      - name: Post Checkout cleanup
-        if: always()
         run: |
-          git config --global --unset-all url.https://github.com/.insteadOf || true
-          git config --global --unset-all url.ssh://git@github.com/.insteadOf || true
+          echo "Release directory"
+          ls -lah release || true
+          echo "Mac artifacts"
+          find release -maxdepth 2 -type f \( -name "*.zip" -o -name "*.dmg" \) -print || true
+
+      - name: Upload Mac artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: judge-ai-mac
+          path: |
+            release/*.zip
+            release/*.dmg
+          if-no-files-found: error
