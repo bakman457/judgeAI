@@ -1,4 +1,4 @@
-CREATE TABLE `case_review_snapshots` (
+CREATE TABLE IF NOT EXISTS `case_review_snapshots` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`caseId` int NOT NULL,
 	`draftId` int,
@@ -19,7 +19,7 @@ CREATE TABLE `case_review_snapshots` (
 	CONSTRAINT `case_review_snapshots_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `review_approval_thresholds` (
+CREATE TABLE IF NOT EXISTS `review_approval_thresholds` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`ownerUserId` int NOT NULL,
 	`caseTypeKey` enum('general','civil','criminal','administrative') NOT NULL,
