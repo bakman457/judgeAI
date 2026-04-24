@@ -25,10 +25,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.4.1
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install dependencies
         run: pnpm install
@@ -39,22 +37,12 @@ jobs:
       - name: Build CJS server bundle
         run: pnpm build:cjs
 
-      - name: Clean old releases
-        run: rm -rf release
-
       - name: Build Mac executables
         run: npx electron-builder --mac
-
-      - name: Upload Mac artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: judge-ai-mac
-          path: release/*.dmg
-          if-no-files-found: ignore
 
       - name: Upload Mac ZIP
         uses: actions/upload-artifact@v4
         with:
           name: judge-ai-mac-zip
           path: release/*.zip
-          if-no-files-found: ignore
+          if-no-files-found: error
