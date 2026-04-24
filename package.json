@@ -175,7 +175,7 @@
     "mac": {
       "target": ["dmg", "zip"],
       "category": "public.app-category.productivity",
-      "icon": "build/icon.ico"
+      "identity": null
     },
     "win": {
       "target": "nsis"
