@@ -1,4 +1,4 @@
-CREATE TABLE `ai_provider_settings` (
+CREATE TABLE IF NOT EXISTS `ai_provider_settings` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`name` varchar(180) NOT NULL,
 	`providerType` enum('openai','azure_openai','custom_openai_compatible') NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE `ai_provider_settings` (
 	CONSTRAINT `ai_provider_settings_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `case_activity_logs` (
+CREATE TABLE IF NOT EXISTS `case_activity_logs` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`caseId` int NOT NULL,
 	`actorUserId` int,
@@ -30,7 +30,7 @@ CREATE TABLE `case_activity_logs` (
 	CONSTRAINT `case_activity_logs_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `case_documents` (
+CREATE TABLE IF NOT EXISTS `case_documents` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`caseId` int NOT NULL,
 	`documentType` enum('pleading','evidence','supporting','reference','decision','other') NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE `case_documents` (
 	CONSTRAINT `case_documents_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `case_parties` (
+CREATE TABLE IF NOT EXISTS `case_parties` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`caseId` int NOT NULL,
 	`partyType` enum('claimant','defendant','respondent','appellant','appellee','interested_party','other') NOT NULL,
@@ -65,7 +65,7 @@ CREATE TABLE `case_parties` (
 	CONSTRAINT `case_parties_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `cases` (
+CREATE TABLE IF NOT EXISTS `cases` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`caseNumber` varchar(120) NOT NULL,
 	`title` varchar(255) NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE `cases` (
 	CONSTRAINT `cases_number_jurisdiction_court_unique` UNIQUE(`caseNumber`,`jurisdictionCode`,`courtLevel`)
 );
 --> statement-breakpoint
-CREATE TABLE `decision_exports` (
+CREATE TABLE IF NOT EXISTS `decision_exports` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`caseId` int NOT NULL,
 	`draftId` int NOT NULL,
@@ -99,7 +99,7 @@ CREATE TABLE `decision_exports` (
 	CONSTRAINT `decision_exports_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `draft_paragraphs` (
+CREATE TABLE IF NOT EXISTS `draft_paragraphs` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`sectionId` int NOT NULL,
 	`paragraphOrder` int NOT NULL,
@@ -114,7 +114,7 @@ CREATE TABLE `draft_paragraphs` (
 	CONSTRAINT `draft_paragraphs_section_order_unique` UNIQUE(`sectionId`,`paragraphOrder`)
 );
 --> statement-breakpoint
-CREATE TABLE `draft_sections` (
+CREATE TABLE IF NOT EXISTS `draft_sections` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`draftId` int NOT NULL,
 	`sectionKey` enum('header','facts','issues','reasoning','operative_part') NOT NULL,
@@ -131,7 +131,7 @@ CREATE TABLE `draft_sections` (
 	CONSTRAINT `draft_sections_draft_key_unique` UNIQUE(`draftId`,`sectionKey`)
 );
 --> statement-breakpoint
-CREATE TABLE `drafts` (
+CREATE TABLE IF NOT EXISTS `drafts` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`caseId` int NOT NULL,
 	`versionNo` int NOT NULL,
@@ -149,7 +149,7 @@ CREATE TABLE `drafts` (
 	CONSTRAINT `drafts_case_version_unique` UNIQUE(`caseId`,`versionNo`)
 );
 --> statement-breakpoint
-CREATE TABLE `knowledge_documents` (
+CREATE TABLE IF NOT EXISTS `knowledge_documents` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`title` varchar(255) NOT NULL,
 	`documentType` enum('statute','regulation','precedent','reference','other') NOT NULL,
@@ -176,7 +176,7 @@ CREATE TABLE `knowledge_documents` (
 	CONSTRAINT `knowledge_documents_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `paragraph_annotations` (
+CREATE TABLE IF NOT EXISTS `paragraph_annotations` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`paragraphId` int NOT NULL,
 	`sourceType` enum('case_document','knowledge_document','statute','regulation','precedent','reference') NOT NULL,
@@ -191,7 +191,7 @@ CREATE TABLE `paragraph_annotations` (
 	CONSTRAINT `paragraph_annotations_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `processing_jobs` (
+CREATE TABLE IF NOT EXISTS `processing_jobs` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`jobType` enum('knowledge_ingest','case_document_ingest','draft_generation','section_regeneration','docx_export') NOT NULL,
 	`targetEntityType` enum('knowledge_document','case_document','draft','draft_section','decision_export') NOT NULL,
@@ -210,7 +210,7 @@ CREATE TABLE `processing_jobs` (
 	CONSTRAINT `processing_jobs_id` PRIMARY KEY(`id`)
 );
 --> statement-breakpoint
-CREATE TABLE `user_sessions` (
+CREATE TABLE IF NOT EXISTS `user_sessions` (
 	`id` int AUTO_INCREMENT NOT NULL,
 	`userId` int NOT NULL,
 	`sessionTokenHash` varchar(128) NOT NULL,
