@@ -18,6 +18,7 @@ RUN npm install -g pnpm@10.4.1 && \
 
 # Copy dependency manifests first (for layer caching)
 COPY package.json pnpm-lock.yaml .npmrc* ./
+COPY patches ./patches/
 
 # Install all dependencies (including devDeps needed for build)
 RUN pnpm install
