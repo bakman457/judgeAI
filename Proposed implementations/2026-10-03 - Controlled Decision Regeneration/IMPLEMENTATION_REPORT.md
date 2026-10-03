@@ -14,7 +14,8 @@ The existing Judge AI workflow generated a complete new decision draft when the 
 - selection of exactly which decision sections may be rewritten;
 - deterministic preservation of all non-selected sections;
 - automatic creation of a new numbered draft version instead of overwriting an existing version;
-- auditability of the regeneration request.
+- auditability of the regeneration request;
+- temporary file attachments that can guide style, structure, or supplementary context for a single regeneration run.
 
 ## 2. User-facing behavior
 
@@ -26,9 +27,12 @@ The Draft tab now contains a **Regenerate with judge instructions** panel with:
 
 1. **Additional AI instructions** — free-text textbox.
 2. **Baseline version** — selector containing stored draft versions for the case.
-3. **Sections the AI may rewrite** — Header, Facts, Issues, Reasoning, Operative Part.
-4. **Regenerate as new version** action.
-5. **Reset controls** action.
+3. **Reference files for this regeneration** — attach temporary PDF/DOCX/TXT/MD/HTML/JSON/image files.
+4. **Per-file purpose** — Style, Reference, or Structure.
+5. **Optional per-file instruction** — e.g. “Follow the formal tone and sentence rhythm of this judgment.”
+6. **Sections the AI may rewrite** — Header, Facts, Issues, Reasoning, Operative Part.
+7. **Regenerate as new version** action.
+8. **Reset controls** action.
 
 At least one section must remain selected.
 
@@ -57,12 +61,18 @@ The workspace API now exposes recent draft versions through `draftHistory` so th
 - `customInstructions?: string | null`
 - `rewriteSections?: ("header" | "facts" | "issues" | "reasoning" | "operative_part")[] | null`
 - `sourceDraftId?: number | null`
+- `referenceAttachments?: Array<{ fileName; mimeType; base64Content; sizeBytes; purpose; note }>`
 
 Validation limits:
 
 - custom instructions: max 12,000 characters;
 - review context: max 20,000 characters;
-- rewrite section list: 1–5 known section keys.
+- rewrite section list: 1–5 known section keys;
+- reference attachments: maximum 8 files;
+- maximum 25 MB per attachment;
+- maximum 50 MB total attachments;
+- optional per-file note: max 1,000 characters;
+- accepted temporary reference purposes: `style`, `reference`, `structure`.
 
 The backend rejects a baseline draft belonging to a different case.
 
@@ -75,6 +85,7 @@ Section-scoped regeneration requires a baseline draft.
 - `customInstructions`
 - `rewriteSections`
 - `sourceDraft`
+- `regenerationReferences`
 
 For regeneration, the prompt explicitly tells the model:
 
@@ -82,9 +93,18 @@ For regeneration, the prompt explicitly tells the model:
 - which sections are intended to be rewritten;
 - that other sections are locked;
 - the judge's additional instructions;
-- the baseline draft text.
+- the baseline draft text;
+- extracted text from temporary reference attachments;
+- trusted judge instructions describing how each attached file should be used.
 
 Judge instructions are subordinate to legal accuracy, case facts, source safety, and the required structured output schema.
+
+Temporary attachments are deliberately separated into two layers:
+
+- **trusted judge metadata** (purpose and optional note) is placed in the instruction layer;
+- **document contents** are wrapped as untrusted `<regeneration_reference>` source blocks so embedded commands in an uploaded document are never treated as authoritative instructions.
+
+For `purpose=style`, the model may mirror high-level tone, sentence rhythm, terminology preferences, and drafting conventions without copying distinctive passages. `purpose=structure` may guide organization only. `purpose=reference` is supplementary context and must not silently become verified evidence or binding law.
 
 ## 6. Hard section locking
 
@@ -114,9 +134,12 @@ The draft-generation processing job's `payloadJson` now records:
 - source version number;
 - rewrite section list;
 - custom judge instructions;
-- review context.
+- review context;
+- attachment filename, MIME type, declared size, purpose, and optional note.
 
-The `draft.generated` case activity event also records the regeneration metadata.
+The `draft.generated` case activity event also records the regeneration metadata plus a SHA-256 digest for each processed attachment.
+
+Raw attachment bytes/base64 are not written into the case record or processing-job audit payload by this feature.
 
 The complete generation prompt continues to be retained in `generationPromptSnapshot`.
 
@@ -138,7 +161,9 @@ English and Greek strings were added for all regeneration controls.
 Focused tests cover:
 
 1. inclusion of baseline version, rewrite scope, and judge instructions in the generation prompt;
-2. deterministic preservation of locked sections when only a selected section is regenerated.
+2. deterministic preservation of locked sections when only a selected section is regenerated;
+3. inclusion of temporary style/structure references with explicit purpose and prompt-safety boundaries;
+4. placement of judge-provided attachment notes outside the untrusted document source blocks.
 
 ## 11. Validation status
 
@@ -162,3 +187,7 @@ pnpm build
 - The original draft is never destroyed by regeneration.
 - Cross-case baseline selection is rejected server-side.
 - Locked sections are enforced in application code, not merely by model compliance.
+- Temporary reference files are not silently added to permanent case evidence.
+- Attached document content is treated as untrusted source material to reduce prompt-injection risk.
+- Style references may influence writing style but cannot override verified facts, legal constraints, or source requirements.
+- Extracted attachment text is capped at 20,000 characters per file and 60,000 characters total before entering the model prompt.
