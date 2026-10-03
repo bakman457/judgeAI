@@ -482,6 +482,54 @@ export const reviewFindingResolutions = mysqlTable(
   }),
 );
 
+export const userMemoryEvents = mysqlTable(
+  "user_memory_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    caseId: int("caseId").references(() => cases.id, { onDelete: "set null" }),
+    caseType: varchar("caseType", { length: 120 }),
+    eventType: varchar("eventType", { length: 64 }).notNull(),
+    rawText: text("rawText").notNull(),
+    metadataJson: json("metadataJson").$type<Record<string, unknown> | null>(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  table => ({
+    userIdx: index("user_memory_events_user_idx").on(table.userId),
+    caseIdx: index("user_memory_events_case_idx").on(table.caseId),
+    createdIdx: index("user_memory_events_created_idx").on(table.createdAt),
+  }),
+);
+
+export const userMemoryItems = mysqlTable(
+  "user_memory_items",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+    scope: mysqlEnum("scope", ["global", "case_type", "case"]).default("global").notNull(),
+    caseId: int("caseId").references(() => cases.id, { onDelete: "set null" }),
+    caseType: varchar("caseType", { length: 120 }),
+    category: mysqlEnum("category", ["instruction", "preference", "edit_example", "author_note", "review_feedback", "manual"]).notNull(),
+    content: text("content").notNull(),
+    fingerprint: varchar("fingerprint", { length: 64 }).notNull(),
+    confidence: decimal("confidence", { precision: 4, scale: 3 }).default("0.900").notNull(),
+    reinforcementCount: int("reinforcementCount").default(1).notNull(),
+    usageCount: int("usageCount").default(0).notNull(),
+    status: mysqlEnum("status", ["active", "inactive", "superseded"]).default("active").notNull(),
+    sourceEventId: int("sourceEventId").references(() => userMemoryEvents.id, { onDelete: "set null" }),
+    lastUsedAt: timestamp("lastUsedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => ({
+    fingerprintUnique: uniqueIndex("user_memory_items_user_fingerprint_unique").on(table.userId, table.fingerprint),
+    userStatusIdx: index("user_memory_items_user_status_idx").on(table.userId, table.status),
+    caseIdx: index("user_memory_items_case_idx").on(table.caseId),
+    caseTypeIdx: index("user_memory_items_case_type_idx").on(table.caseType),
+    updatedIdx: index("user_memory_items_updated_idx").on(table.updatedAt),
+  }),
+);
+
 export const decisionExports = mysqlTable(
   "decision_exports",
   {
@@ -580,6 +628,11 @@ export type InsertCaseReviewSnapshot = typeof caseReviewSnapshots.$inferInsert;
 
 export type ReviewFindingResolution = typeof reviewFindingResolutions.$inferSelect;
 export type InsertReviewFindingResolution = typeof reviewFindingResolutions.$inferInsert;
+
+export type UserMemoryEvent = typeof userMemoryEvents.$inferSelect;
+export type InsertUserMemoryEvent = typeof userMemoryEvents.$inferInsert;
+export type UserMemoryItem = typeof userMemoryItems.$inferSelect;
+export type InsertUserMemoryItem = typeof userMemoryItems.$inferInsert;
 
 export type DecisionExport = typeof decisionExports.$inferSelect;
 export type InsertDecisionExport = typeof decisionExports.$inferInsert;
