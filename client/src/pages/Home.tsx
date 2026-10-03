@@ -2555,8 +2555,20 @@ export default function Home() {
               <Button variant="outline" size="sm" className="rounded-xl border-stone-300/80 bg-white/92 text-rose-700 hover:bg-rose-50 hover:text-rose-800 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(26,31,43,0.98)_0%,rgba(17,20,29,0.99)_100%)] dark:text-rose-400 dark:hover:text-rose-300" onClick={() => setDeleteConfirmCaseId(workspace.case.id)}>
                 <Trash2 className="mr-2 h-4 w-4" />{ui.cases.deleteAction}
               </Button>
-              <Button className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200" onClick={() => generateDraftMutation.mutate({ caseId })} disabled={isGeneratingDraft}>
-                {isGeneratingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}{ui.workspace.generateAction}
+              <Button
+                className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                onClick={() => {
+                  if (activeDraft) {
+                    setRegenerationSourceDraftId(String(activeDraft.id));
+                    setActiveTab("draft");
+                    return;
+                  }
+                  generateDraftMutation.mutate({ caseId });
+                }}
+                disabled={isGeneratingDraft}
+              >
+                {isGeneratingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                {activeDraft ? ui.workspace.regenerateAction : ui.workspace.generateAction}
               </Button>
             </div>
           }
@@ -3093,7 +3105,12 @@ export default function Home() {
                           const reviewContext = unreviewedFindings.length
                             ? unreviewedFindings.map((f: any) => `[${(f.severity ?? "").toUpperCase()}] ${f.category ?? ""}: ${f.issue ?? ""}${f.explanation ? ` — ${f.explanation}` : ""}${f.recommendedAction ? ` (Action: ${f.recommendedAction})` : ""}`).join("\n")
                             : "Regenerate the draft incorporating all previous legal consistency review feedback.";
-                          generateDraftMutation.mutate({ caseId, reviewContext });
+                          setRegenerationInstructions(reviewContext);
+                          if (activeDraft?.id) {
+                            setRegenerationSourceDraftId(String(activeDraft.id));
+                          }
+                          setRegenerationSections(new Set(REGENERATION_SECTIONS));
+                          setActiveTab("draft");
                         }}
                         disabled={isGeneratingDraft}
                       >
