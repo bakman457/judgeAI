@@ -2481,6 +2481,7 @@ export default function Home() {
       if (stage) {
         const stageMap: Record<string, string> = {
           preparing: gp.analyzing,
+          analyzing_attachments: gp.readingAttachments,
           analyzing: gp.reviewing,
           generating: gp.structuring,
           validating: gp.generating,
@@ -3666,23 +3667,26 @@ export default function Home() {
                             return;
                           }
 
-                          setRegenerationAttachments(current => {
-                            const existing = new Set(current.map(item => `${item.file.name}|${item.file.size}|${item.file.lastModified}`));
-                            const availableSlots = Math.max(0, MAX_REGENERATION_ATTACHMENT_FILES - current.length);
-                            const additions = selected
-                              .filter(file => !existing.has(`${file.name}|${file.size}|${file.lastModified}`))
-                              .slice(0, availableSlots)
-                              .map((file, index) => ({
-                                id: `${file.name}-${file.size}-${file.lastModified}-${current.length + index}`,
-                                file,
-                                purpose: "style" as RegenerationReferencePurpose,
-                                note: "",
-                              }));
-                            if (selected.length > availableSlots) {
-                              toast.error(ui.workspace.regenerateAttachmentLimit);
-                            }
-                            return [...current, ...additions];
-                          });
+                          const existing = new Set(
+                            regenerationAttachments.map(item => `${item.file.name}|${item.file.size}|${item.file.lastModified}`),
+                          );
+                          const uniqueSelected = selected.filter(
+                            file => !existing.has(`${file.name}|${file.size}|${file.lastModified}`),
+                          );
+                          const availableSlots = Math.max(
+                            0,
+                            MAX_REGENERATION_ATTACHMENT_FILES - regenerationAttachments.length,
+                          );
+                          if (uniqueSelected.length > availableSlots) {
+                            toast.error(ui.workspace.regenerateAttachmentLimit);
+                          }
+                          const additions = uniqueSelected.slice(0, availableSlots).map((file, index) => ({
+                            id: `${file.name}-${file.size}-${file.lastModified}-${regenerationAttachments.length + index}`,
+                            file,
+                            purpose: "style" as RegenerationReferencePurpose,
+                            note: "",
+                          }));
+                          setRegenerationAttachments(current => [...current, ...additions]);
                           event.currentTarget.value = "";
                         }}
                       />
