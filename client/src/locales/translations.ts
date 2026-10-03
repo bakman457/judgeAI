@@ -361,6 +361,7 @@ export const localizedInterface = {
       generateAction: "Generate decision draft",
       generationProgress: {
         analyzing: "Analyzing case documents...",
+        readingAttachments: "Reading attached reference files...",
         reviewing: "Reviewing legal principles...",
         structuring: "Structuring decision sections...",
         generating: "Generating paragraph rationales...",
@@ -717,6 +718,7 @@ export const localizedInterface = {
       generateAction: "Παραγωγή σχεδίου απόφασης",
       generationProgress: {
         analyzing: "Ανάλυση εγγράφων υπόθεσης...",
+        readingAttachments: "Ανάγνωση επισυναπτόμενων αρχείων αναφοράς...",
         reviewing: "Ανασκόπηση νομικών αρχών...",
         structuring: "Δομήση τμημάτων απόφασης...",
         generating: "Δημιουργία αιτιολογιών παραγράφων...",
