@@ -60,6 +60,11 @@ import {
   updateDraftSectionReview,
   saveSectionAuthorNote,
   transcribeAndSaveSectionNote,
+  addPermanentMemory,
+  listPermanentMemories,
+  listPermanentMemoryEvents,
+  updatePermanentMemoryStatus,
+  getPermanentMemoryStats,
 } from "./judgeAiService";
 import { adminProcedure, protectedProcedure, router } from "./_core/trpc";
 
@@ -207,6 +212,69 @@ export const judgeAiRouter = router({
       .mutation(async ({ input }) => {
         return testOcrProvider(input.base64Image);
       }),
+  }),
+
+  memory: router({
+    list: protectedProcedure
+      .input(
+        z.object({
+          status: z.enum(["active", "inactive", "superseded", "all"]).default("all").optional(),
+          limit: z.coerce.number().int().min(1).max(500).default(200).optional(),
+        }).optional(),
+      )
+      .query(async ({ ctx, input }) =>
+        listPermanentMemories({
+          userId: ctx.user.id,
+          status: input?.status ?? "all",
+          limit: input?.limit ?? 200,
+        }),
+      ),
+    events: protectedProcedure
+      .input(z.object({ limit: z.coerce.number().int().min(1).max(500).default(100).optional() }).optional())
+      .query(async ({ ctx, input }) =>
+        listPermanentMemoryEvents({ userId: ctx.user.id, limit: input?.limit ?? 100 }),
+      ),
+    stats: protectedProcedure.query(async ({ ctx }) => getPermanentMemoryStats(ctx.user.id)),
+    add: protectedProcedure
+      .input(
+        z.object({
+          content: z.string().min(1).max(12000),
+          scope: z.enum(["global", "case_type", "case"]).default("global"),
+          category: z.enum(["instruction", "preference", "edit_example", "author_note", "review_feedback", "manual"]).default("manual").optional(),
+          caseId: z.coerce.number().int().positive().nullable().optional(),
+          caseType: z.string().max(120).nullable().optional(),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        if (input.scope === "case") {
+          if (!input.caseId) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: "caseId is required for case-scoped memory" });
+          }
+          await assertCaseAccess(input.caseId, ctx.user);
+        }
+        return addPermanentMemory({
+          userId: ctx.user.id,
+          content: input.content,
+          scope: input.scope,
+          category: input.category ?? "manual",
+          caseId: input.caseId ?? null,
+          caseType: input.caseType ?? null,
+        });
+      }),
+    setStatus: protectedProcedure
+      .input(
+        z.object({
+          memoryId: z.coerce.number().int().positive(),
+          status: z.enum(["active", "inactive", "superseded"]),
+        }),
+      )
+      .mutation(async ({ ctx, input }) =>
+        updatePermanentMemoryStatus({
+          userId: ctx.user.id,
+          memoryId: input.memoryId,
+          status: input.status,
+        }),
+      ),
   }),
 
   judgeStyle: router({
