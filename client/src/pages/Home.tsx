@@ -1123,7 +1123,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!activeDraft?.id) return;
-    setRegenerationSourceDraftId(current => current || String(activeDraft.id));
+    setRegenerationSourceDraftId(String(activeDraft.id));
   }, [activeDraft?.id]);
 
   const latestDraftText = useMemo(
