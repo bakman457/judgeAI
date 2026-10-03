@@ -489,7 +489,7 @@ export const localizedInterface = {
       regenerateReset: "Reset controls",
       regenerateHistoryHint: "The current draft is not overwritten; regeneration always creates a new numbered version.",
       regenerateAttachmentsLabel: "Reference files for this regeneration",
-      regenerateAttachmentsHint: "Attach up to 8 temporary files (25 MB each). Mark each as Style, Reference, or Structure. These files are considered only for this regeneration and are not added to the permanent case record.",
+      regenerateAttachmentsHint: "Attach up to 8 temporary files (25 MB each, 50 MB total). Mark each as Style, Reference, or Structure. These files are considered only for this regeneration and are not added to the permanent case record.",
       regenerateAttachAction: "Attach files",
       regenerateAttachmentPurposeLabel: "How the AI should use this file",
       regenerateAttachmentPurposes: {
@@ -501,6 +501,7 @@ export const localizedInterface = {
       regenerateAttachmentNotePlaceholder: "Example: Follow the formal tone and sentence structure of this judgment.",
       regenerateAttachmentRemove: "Remove attachment",
       regenerateAttachmentLimit: "A maximum of 8 regeneration reference files can be attached.",
+      regenerateAttachmentTotalLimit: "Regeneration reference files cannot exceed 50 MB in total.",
       regenerateAttachmentTooLarge: "Attachment {name} exceeds the 25 MB regeneration limit.",
       regenerateAttachmentReadError: "One or more attached files could not be prepared for regeneration.",
       approveDraft: "Approve draft",
@@ -846,7 +847,7 @@ export const localizedInterface = {
       regenerateReset: "Επαναφορά επιλογών",
       regenerateHistoryHint: "Το τρέχον σχέδιο δεν αντικαθίσταται· κάθε επαναδημιουργία δημιουργεί νέα αριθμημένη έκδοση.",
       regenerateAttachmentsLabel: "Αρχεία αναφοράς για αυτή την επαναδημιουργία",
-      regenerateAttachmentsHint: "Επισυνάψτε έως 8 προσωρινά αρχεία (25 MB το καθένα). Ορίστε για κάθε αρχείο χρήση ως Ύφος, Αναφορά ή Δομή. Τα αρχεία λαμβάνονται υπόψη μόνο σε αυτή την επαναδημιουργία και δεν προστίθενται μόνιμα στον φάκελο της υπόθεσης.",
+      regenerateAttachmentsHint: "Επισυνάψτε έως 8 προσωρινά αρχεία (25 MB το καθένα, 50 MB συνολικά). Ορίστε για κάθε αρχείο χρήση ως Ύφος, Αναφορά ή Δομή. Τα αρχεία λαμβάνονται υπόψη μόνο σε αυτή την επαναδημιουργία και δεν προστίθενται μόνιμα στον φάκελο της υπόθεσης.",
       regenerateAttachAction: "Επισύναψη αρχείων",
       regenerateAttachmentPurposeLabel: "Πώς θα χρησιμοποιήσει το AI αυτό το αρχείο",
       regenerateAttachmentPurposes: {
@@ -858,6 +859,7 @@ export const localizedInterface = {
       regenerateAttachmentNotePlaceholder: "Παράδειγμα: Ακολούθησε τον επίσημο τόνο και τη δομή προτάσεων αυτής της απόφασης.",
       regenerateAttachmentRemove: "Αφαίρεση συνημμένου",
       regenerateAttachmentLimit: "Μπορούν να επισυναφθούν έως 8 αρχεία αναφοράς για επαναδημιουργία.",
+      regenerateAttachmentTotalLimit: "Τα αρχεία αναφοράς για επαναδημιουργία δεν μπορούν να υπερβαίνουν συνολικά τα 50 MB.",
       regenerateAttachmentTooLarge: "Το συνημμένο {name} υπερβαίνει το όριο των 25 MB για επαναδημιουργία.",
       regenerateAttachmentReadError: "Δεν ήταν δυνατή η προετοιμασία ενός ή περισσότερων συνημμένων αρχείων για επαναδημιουργία.",
       approveDraft: "Έγκριση σχεδίου",
