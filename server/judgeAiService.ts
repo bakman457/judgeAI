@@ -1547,6 +1547,40 @@ export function validateAndNormalizeDraftOutput(output: DraftModelOutput) {
   return normalizedSections;
 }
 
+export function applyRegenerationScope(
+  generatedSections: ReturnType<typeof validateAndNormalizeDraftOutput>,
+  sourceDraft: NonNullable<Awaited<ReturnType<typeof getDraftById>>>,
+  rewriteSections: DraftSectionKey[],
+) {
+  const rewriteSet = new Set<DraftSectionKey>(rewriteSections);
+  return generatedSections.map(generatedSection => {
+    if (rewriteSet.has(generatedSection.sectionKey)) return generatedSection;
+    const baselineSection = sourceDraft.sections.find(section => section.sectionKey === generatedSection.sectionKey);
+    if (!baselineSection) return generatedSection;
+    return {
+      sectionKey: baselineSection.sectionKey as DraftSectionKey,
+      sectionTitle: baselineSection.sectionTitle,
+      sectionText: baselineSection.sectionText,
+      sectionOrder: baselineSection.sectionOrder,
+      paragraphs: baselineSection.paragraphs.map(paragraph => ({
+        paragraphText: paragraph.paragraphText,
+        rationale: paragraph.rationale ?? null,
+        confidenceScore: paragraph.confidenceScore ?? null,
+        annotations: paragraph.annotations.map(annotation => ({
+          sourceType: annotation.sourceType,
+          caseDocumentId: annotation.caseDocumentId ?? null,
+          knowledgeDocumentId: annotation.knowledgeDocumentId ?? null,
+          sourceLabel: annotation.sourceLabel,
+          sourceLocator: annotation.sourceLocator ?? null,
+          quotedText: annotation.quotedText ?? null,
+          rationaleNote: annotation.rationaleNote ?? null,
+          relevanceScore: annotation.relevanceScore ?? null,
+        })),
+      })),
+    };
+  });
+}
+
 export function buildCasePrompt(
   workspace: NonNullable<Awaited<ReturnType<typeof getCaseWorkspace>>>,
   knowledge: Awaited<ReturnType<typeof listKnowledgeDocuments>>,
@@ -2887,33 +2921,7 @@ export async function generateStructuredDraft(input: {
       let sections = validateAndNormalizeDraftOutput(providerResult.parsed);
 
       if (sourceDraft && requestedRewriteSections) {
-        const rewriteSet = new Set<DraftSectionKey>(requestedRewriteSections);
-        sections = sections.map(generatedSection => {
-          if (rewriteSet.has(generatedSection.sectionKey)) return generatedSection;
-          const baselineSection = sourceDraft.sections.find(section => section.sectionKey === generatedSection.sectionKey);
-          if (!baselineSection) return generatedSection;
-          return {
-            sectionKey: baselineSection.sectionKey as DraftSectionKey,
-            sectionTitle: baselineSection.sectionTitle,
-            sectionText: baselineSection.sectionText,
-            sectionOrder: baselineSection.sectionOrder,
-            paragraphs: baselineSection.paragraphs.map(paragraph => ({
-              paragraphText: paragraph.paragraphText,
-              rationale: paragraph.rationale ?? null,
-              confidenceScore: paragraph.confidenceScore ?? null,
-              annotations: paragraph.annotations.map(annotation => ({
-                sourceType: annotation.sourceType,
-                caseDocumentId: annotation.caseDocumentId ?? null,
-                knowledgeDocumentId: annotation.knowledgeDocumentId ?? null,
-                sourceLabel: annotation.sourceLabel,
-                sourceLocator: annotation.sourceLocator ?? null,
-                quotedText: annotation.quotedText ?? null,
-                rationaleNote: annotation.rationaleNote ?? null,
-                relevanceScore: annotation.relevanceScore ?? null,
-              })),
-            })),
-          };
-        });
+        sections = applyRegenerationScope(sections, sourceDraft, requestedRewriteSections);
       }
 
       await updateProcessingJob(job.id, {
