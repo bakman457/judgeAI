@@ -1,5 +1,6 @@
 import "dotenv/config";
 import "./logger";
+import "../integration/standalone";
 import cors from "cors";
 import express from "express";
 import { createServer } from "http";
