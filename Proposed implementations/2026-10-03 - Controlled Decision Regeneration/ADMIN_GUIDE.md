@@ -48,6 +48,14 @@ The tRPC `judgeAi.drafts.generate` request supports:
     | "operative_part"
   )[] | null;
   sourceDraftId?: number | null;
+  referenceAttachments?: Array<{
+    fileName: string;
+    mimeType: string;
+    base64Content: string;
+    sizeBytes?: number | null;
+    purpose: "style" | "reference" | "structure";
+    note?: string | null;
+  }> | null;
 }
 ```
 
@@ -61,7 +69,13 @@ Server-side validation includes:
 - max 20,000 characters for review context;
 - 1–5 values in `rewriteSections`;
 - allowed section enum only;
-- baseline draft must belong to the same case.
+- baseline draft must belong to the same case;
+- maximum 8 temporary regeneration attachments;
+- maximum 25 MB per file;
+- maximum 50 MB total decoded attachment size;
+- per-file note limited to 1,000 characters;
+- purpose limited to `style`, `reference`, or `structure`;
+- MIME type and magic bytes are validated through the existing upload guards.
 
 Do not rely on frontend validation alone.
 
@@ -72,13 +86,14 @@ Do not rely on frontend validation alone.
 3. Service loads the case workspace.
 4. Service loads/validates the selected baseline.
 5. Processing job is created.
-6. Legal knowledge context is retrieved.
-7. Prompt includes baseline, requested scope, and judge instructions.
-8. Provider generates the standard five-section JSON result.
-9. Output is normalized.
-10. `applyRegenerationScope()` restores locked sections from the baseline.
-11. A new version is saved through `createDraftWithSections()`.
-12. Job result and case activity are updated.
+6. Temporary regeneration attachments are decoded, type-checked, text-extracted/OCR-processed, size-limited, hashed, and truncated to safe prompt limits.
+7. Legal knowledge context is retrieved.
+8. Prompt includes baseline, requested scope, judge instructions, trusted per-file purpose/note metadata, and untrusted wrapped attachment content.
+9. Provider generates the standard five-section JSON result.
+10. Output is normalized.
+11. `applyRegenerationScope()` restores locked sections from the baseline.
+12. A new version is saved through `createDraftWithSections()`.
+13. Job result and case activity are updated.
 
 ## 6. Audit fields
 
@@ -90,8 +105,11 @@ Inspect `processing_jobs.payloadJson` for:
 - `customInstructions`
 - `reviewContext`
 - provider/profile metadata
+- attachment metadata: filename, MIME type, declared size, purpose, optional note
 
-Inspect the `draft.generated` activity log for the same regeneration context.
+Inspect the `draft.generated` activity log for the same regeneration context. Successfully processed attachments also include their computed SHA-256 digest in the activity details.
+
+Raw base64/file bytes are intentionally excluded from the processing-job audit payload and are not persisted as case evidence by this feature.
 
 The persisted draft's `generationPromptSnapshot` contains the actual user prompt sent for the saved generation.
 
@@ -127,6 +145,22 @@ Compare the selected baseline version with the new draft at the structured secti
 
 The backend should replace every non-selected generated section with baseline content before saving. If a difference is found, inspect `applyRegenerationScope()` and the input `rewriteSections`.
 
+### Attachment cannot be processed
+
+Check:
+
+- supported file type;
+- 25 MB per-file limit;
+- 50 MB total limit;
+- file corruption or magic-byte mismatch;
+- OCR availability for scanned documents/images.
+
+The processing-job stage `analyzing_attachments` is used while temporary references are being extracted.
+
+### Style attachment appears to affect facts or law
+
+Verify the file purpose is `style`, not `reference`. The prompt explicitly restricts style files to high-level drafting characteristics and requires factual/legal conclusions to remain grounded in the case record and permanent knowledge base.
+
 ### Generation fails at the provider
 
 Use the existing processing-job error and provider logs. The feature does not change the provider failover mechanism.
@@ -155,7 +189,9 @@ Then perform a functional smoke test:
 6. Confirm version 4 inherits locked sections from version 1, not version 3.
 7. Run legal consistency review.
 8. Use **New Generation** and verify findings appear in the instruction textbox without immediately triggering the model.
-9. Check processing-job and case-activity audit metadata.
+9. Attach a DOCX/PDF as **Style**, add the note “Follow this document's formal judicial tone”, regenerate Reasoning, and verify the style influence without factual carry-over.
+10. Verify attachment metadata and SHA-256 are present in activity audit data, while raw file content is not persisted there.
+11. Check processing-job and case-activity audit metadata.
 
 ## 11. Permissions
 
