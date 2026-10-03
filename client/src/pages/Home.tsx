@@ -3604,7 +3604,7 @@ export default function Home() {
                       options={(draftHistory.length ? draftHistory : [activeDraft]).map((draft: any) => [
                         String(draft.id),
                         `${ui.workspace.version} ${draft.versionNo} · ${translateToken(locale, draft.status)}`,
-                      ])}
+                      ] as [string, string])}
                     />
                   </div>
 
