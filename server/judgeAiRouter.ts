@@ -675,7 +675,15 @@ export const judgeAiRouter = router({
           caseId: z.coerce.number().int().positive(),
           providerId: z.coerce.number().int().positive().nullable().optional(),
           profileId: z.coerce.number().int().positive().nullable().optional(),
-          reviewContext: z.string().optional().nullable(),
+          reviewContext: z.string().max(20000).optional().nullable(),
+          customInstructions: z.string().max(12000).optional().nullable(),
+          rewriteSections: z
+            .array(z.enum(["header", "facts", "issues", "reasoning", "operative_part"]))
+            .min(1)
+            .max(5)
+            .optional()
+            .nullable(),
+          sourceDraftId: z.coerce.number().int().positive().optional().nullable(),
         }),
       )
       .mutation(async ({ ctx, input }) => {
@@ -687,6 +695,9 @@ export const judgeAiRouter = router({
           providerId: input.providerId ?? null,
           profileId: input.profileId ?? null,
           reviewContext: input.reviewContext ?? null,
+          customInstructions: input.customInstructions ?? null,
+          rewriteSections: input.rewriteSections ?? null,
+          sourceDraftId: input.sourceDraftId ?? null,
         });
       }),
     jobStatus: protectedProcedure
