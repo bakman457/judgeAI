@@ -684,6 +684,20 @@ export const judgeAiRouter = router({
             .optional()
             .nullable(),
           sourceDraftId: z.coerce.number().int().positive().optional().nullable(),
+          referenceAttachments: z
+            .array(
+              z.object({
+                fileName: z.string().min(1).max(255),
+                mimeType: z.string().min(1).max(255),
+                base64Content: z.string().min(1),
+                sizeBytes: z.coerce.number().int().nonnegative().max(25 * 1024 * 1024).optional().nullable(),
+                purpose: z.enum(["style", "reference", "structure"]),
+                note: z.string().max(1000).optional().nullable(),
+              }),
+            )
+            .max(8)
+            .optional()
+            .nullable(),
         }),
       )
       .mutation(async ({ ctx, input }) => {
@@ -698,6 +712,7 @@ export const judgeAiRouter = router({
           customInstructions: input.customInstructions ?? null,
           rewriteSections: input.rewriteSections ?? null,
           sourceDraftId: input.sourceDraftId ?? null,
+          referenceAttachments: input.referenceAttachments ?? null,
         });
       }),
     jobStatus: protectedProcedure
