@@ -919,6 +919,25 @@ export async function getLatestDraftForCase(caseId: number) {
   return result[0];
 }
 
+export async function listDraftVersionsForCase(caseId: number, limit = 25) {
+  const db = await ensureDb();
+  return db
+    .select({
+      id: drafts.id,
+      versionNo: drafts.versionNo,
+      status: drafts.status,
+      generationMode: drafts.generationMode,
+      providerSettingId: drafts.providerSettingId,
+      createdBy: drafts.createdBy,
+      createdAt: drafts.createdAt,
+      updatedAt: drafts.updatedAt,
+    })
+    .from(drafts)
+    .where(eq(drafts.caseId, caseId))
+    .orderBy(desc(drafts.versionNo), desc(drafts.createdAt))
+    .limit(Math.max(1, Math.min(limit, 100)));
+}
+
 export async function getNextDraftVersion(caseId: number, tx?: MySql2Database<any>) {
   const db = tx ?? await ensureDb();
   const result = await db
@@ -1562,10 +1581,11 @@ export async function getCaseWorkspace(caseId: number, user: CaseAccessUser) {
     return undefined;
   }
 
-  const [parties, documents, latestDraft, activity, reviewHistory, reviewThresholds] = await Promise.all([
+  const [parties, documents, latestDraft, draftHistory, activity, reviewHistory, reviewThresholds] = await Promise.all([
     getCaseParties(caseId),
     listCaseDocuments(caseId),
     getLatestDraftForCase(caseId),
+    listDraftVersionsForCase(caseId),
     listCaseActivity(caseId),
     listCaseReviewSnapshots(caseId),
     listReviewApprovalThresholds(user.id),
@@ -1579,6 +1599,7 @@ export async function getCaseWorkspace(caseId: number, user: CaseAccessUser) {
     parties,
     documents,
     latestDraft: draft,
+    draftHistory,
     activity,
     reviewHistory,
     reviewThresholds,

@@ -122,7 +122,7 @@ type BatchUploadFileInput = {
 type InferredCaseDocumentType = "pleading" | "evidence" | "supporting" | "reference" | "decision" | "other";
 type InferredKnowledgeDocumentType = "statute" | "regulation" | "precedent" | "reference" | "other";
 
-type DraftSectionKey = "header" | "facts" | "issues" | "reasoning" | "operative_part";
+export type DraftSectionKey = "header" | "facts" | "issues" | "reasoning" | "operative_part";
 type ReviewTemplateKey = "inheritance";
 
 type DraftAnnotation = {
@@ -1547,10 +1547,51 @@ export function validateAndNormalizeDraftOutput(output: DraftModelOutput) {
   return normalizedSections;
 }
 
+export function applyRegenerationScope(
+  generatedSections: ReturnType<typeof validateAndNormalizeDraftOutput>,
+  sourceDraft: NonNullable<Awaited<ReturnType<typeof getDraftById>>>,
+  rewriteSections: DraftSectionKey[],
+) {
+  const rewriteSet = new Set<DraftSectionKey>(rewriteSections);
+  return generatedSections.map(generatedSection => {
+    if (rewriteSet.has(generatedSection.sectionKey)) return generatedSection;
+    const baselineSection = sourceDraft.sections.find(section => section.sectionKey === generatedSection.sectionKey);
+    if (!baselineSection) return generatedSection;
+    return {
+      sectionKey: baselineSection.sectionKey as DraftSectionKey,
+      sectionTitle: baselineSection.sectionTitle,
+      sectionText: baselineSection.sectionText,
+      sectionOrder: baselineSection.sectionOrder,
+      paragraphs: baselineSection.paragraphs.map(paragraph => ({
+        paragraphText: paragraph.paragraphText,
+        rationale: paragraph.rationale ?? null,
+        confidenceScore: paragraph.confidenceScore ?? null,
+        annotations: paragraph.annotations.map(annotation => ({
+          sourceType: annotation.sourceType,
+          caseDocumentId: annotation.caseDocumentId ?? null,
+          knowledgeDocumentId: annotation.knowledgeDocumentId ?? null,
+          sourceLabel: annotation.sourceLabel,
+          sourceLocator: annotation.sourceLocator ?? null,
+          quotedText: annotation.quotedText ?? null,
+          rationaleNote: annotation.rationaleNote ?? null,
+          relevanceScore: annotation.relevanceScore ?? null,
+        })),
+      })),
+    };
+  });
+}
+
 export function buildCasePrompt(
   workspace: NonNullable<Awaited<ReturnType<typeof getCaseWorkspace>>>,
   knowledge: Awaited<ReturnType<typeof listKnowledgeDocuments>>,
-  options: { compact?: boolean; styleProfile?: Record<string, unknown> | null; reviewContext?: string | null } = {},
+  options: {
+    compact?: boolean;
+    styleProfile?: Record<string, unknown> | null;
+    reviewContext?: string | null;
+    customInstructions?: string | null;
+    rewriteSections?: DraftSectionKey[] | null;
+    sourceDraft?: NonNullable<Awaited<ReturnType<typeof getDraftById>>> | null;
+  } = {},
 ) {
   const caseDocumentLimit = options.compact ? 5 : Number.POSITIVE_INFINITY;
   const caseDocumentTextLimit = options.compact ? 900 : 3_000;
@@ -1647,11 +1688,24 @@ export function buildCasePrompt(
     styleInstructions.length > 0 ? `Style guidance (subordinate to legal accuracy): ${styleInstructions.join(" ")}` : null,
   ].filter(Boolean).join(" ");
 
+  const rewriteSections = options.rewriteSections?.length ? options.rewriteSections : null;
+  const sourceDraftText = options.sourceDraft
+    ? options.sourceDraft.sections
+        .map(section => `[${section.sectionKey}] ${section.sectionTitle}\n${section.sectionText}`)
+        .join("\n\n")
+    : null;
+
   const userPrompt = [
     "Draft a judicial decision using the provided case file and permanent knowledge base.",
     options.compact ? "Use this compact context because the provider rejected the larger request. Keep the draft concise but complete." : null,
+    options.sourceDraft ? `This is a regeneration of draft version ${options.sourceDraft.versionNo}. Use that draft as the baseline and improve it rather than starting from scratch.` : null,
+    rewriteSections ? `Only the following sections are intended to be rewritten: ${rewriteSections.join(", ")}. Other sections are locked and will be preserved by the application.` : null,
+    options.customInstructions?.trim() ? "Judge-provided regeneration instructions (follow them unless they conflict with law, evidence, or the required output schema):" : null,
+    options.customInstructions?.trim() || null,
     options.reviewContext ? "A previous legal consistency review identified the following issues that must be addressed in this new draft. Ensure every listed issue is properly resolved in the generated decision." : null,
     options.reviewContext ? options.reviewContext : null,
+    sourceDraftText ? "Baseline draft:" : null,
+    sourceDraftText,
     "Return a JSON object matching the requested schema.",
     "Case summary:",
     caseSummary,
@@ -2706,10 +2760,32 @@ export async function generateStructuredDraft(input: {
   providerId?: number | null;
   profileId?: number | null;
   reviewContext?: string | null;
+  customInstructions?: string | null;
+  rewriteSections?: DraftSectionKey[] | null;
+  sourceDraftId?: number | null;
 }) {
   const workspace = await getCaseWorkspace(input.caseId, { id: input.userId, role: input.userRole });
   if (!workspace) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Case was not found" });
+  }
+
+  const requestedRewriteSections = input.rewriteSections?.length
+    ? Array.from(new Set(input.rewriteSections))
+    : null;
+  const sourceDraft = input.sourceDraftId
+    ? await getDraftById(input.sourceDraftId)
+    : requestedRewriteSections || input.customInstructions?.trim()
+      ? workspace.latestDraft ?? null
+      : null;
+
+  if (sourceDraft && sourceDraft.caseId !== input.caseId) {
+    throw new TRPCError({ code: "BAD_REQUEST", message: "The selected baseline draft does not belong to this case" });
+  }
+  if (requestedRewriteSections && !sourceDraft) {
+    throw new TRPCError({
+      code: "PRECONDITION_FAILED",
+      message: "A baseline draft is required for section-scoped regeneration",
+    });
   }
 
   // Fetch judge style profile if specified or if user has an active one
@@ -2737,7 +2813,16 @@ export async function generateStructuredDraft(input: {
     targetEntityId: input.caseId,
     caseId: input.caseId,
     status: "running",
-    payloadJson: { providerId: input.providerId ?? null, profileId: input.profileId ?? null, styleActive: Boolean(styleProfile) },
+    payloadJson: {
+      providerId: input.providerId ?? null,
+      profileId: input.profileId ?? null,
+      styleActive: Boolean(styleProfile),
+      sourceDraftId: sourceDraft?.id ?? null,
+      sourceVersionNo: sourceDraft?.versionNo ?? null,
+      rewriteSections: requestedRewriteSections,
+      customInstructions: input.customInstructions?.trim() || null,
+      reviewContext: input.reviewContext?.trim() || null,
+    },
     resultJson: { stage: "preparing", message: "Preparing case workspace and legal context..." },
     createdBy: input.userId,
   });
@@ -2754,7 +2839,13 @@ export async function generateStructuredDraft(input: {
       await updateProcessingJob(job.id, {
         resultJson: { stage: "analyzing", message: "Analyzing case documents and legal principles..." },
       });
-      let prompt = buildCasePrompt(workspace, knowledge, { styleProfile, reviewContext: input.reviewContext });
+      let prompt = buildCasePrompt(workspace, knowledge, {
+        styleProfile,
+        reviewContext: input.reviewContext,
+        customInstructions: input.customInstructions,
+        rewriteSections: requestedRewriteSections,
+        sourceDraft,
+      });
       let providerResult;
       await updateProcessingJob(job.id, {
         resultJson: { stage: "generating", message: "Generating structured decision draft..." },
@@ -2807,7 +2898,14 @@ export async function generateStructuredDraft(input: {
         await updateProcessingJob(job.id, {
           resultJson: { stage: "retrying", message: "Retrying with compact context due to provider output issue..." },
         });
-        prompt = buildCasePrompt(workspace, knowledge, { compact: true, styleProfile, reviewContext: input.reviewContext });
+        prompt = buildCasePrompt(workspace, knowledge, {
+          compact: true,
+          styleProfile,
+          reviewContext: input.reviewContext,
+          customInstructions: input.customInstructions,
+          rewriteSections: requestedRewriteSections,
+          sourceDraft,
+        });
         providerResult = await invokeConfiguredModel({
           providerId: input.providerId,
           systemPrompt: prompt.systemPrompt,
@@ -2820,7 +2918,12 @@ export async function generateStructuredDraft(input: {
       await updateProcessingJob(job.id, {
         resultJson: { stage: "validating", message: "Validating and structuring draft output..." },
       });
-      const sections = validateAndNormalizeDraftOutput(providerResult.parsed);
+      let sections = validateAndNormalizeDraftOutput(providerResult.parsed);
+
+      if (sourceDraft && requestedRewriteSections) {
+        sections = applyRegenerationScope(sections, sourceDraft, requestedRewriteSections);
+      }
+
       await updateProcessingJob(job.id, {
         resultJson: { stage: "saving", message: "Saving draft sections and paragraphs..." },
       });
@@ -2852,6 +2955,11 @@ export async function generateStructuredDraft(input: {
         detailsJson: {
           providerId: providerResult.provider.id,
           model: providerResult.provider.model,
+          sourceDraftId: sourceDraft?.id ?? null,
+          sourceVersionNo: sourceDraft?.versionNo ?? null,
+          rewriteSections: requestedRewriteSections,
+          customInstructions: input.customInstructions?.trim() || null,
+          reviewContext: input.reviewContext?.trim() || null,
         },
       });
     } catch (error) {

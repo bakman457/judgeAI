@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyRegenerationScope,
+  buildCasePrompt,
   buildCaseReviewPrompt,
   countReviewFindingsBySeverity,
   evaluateReviewAgainstThreshold,
@@ -265,5 +267,111 @@ describe("buildCaseReviewPrompt", () => {
     expect(prompt.userPrompt).toContain("If the record does not contain enough support, say so explicitly in missing-law, missing-evidence, findings, and pre-signature blockers.");
     expect(prompt.systemPrompt).toContain("separate ratio decidendi from obiter dicta");
     expect(prompt.systemPrompt).toContain("identify contradictions, credibility concerns, and reasoning weaknesses");
+  });
+});
+
+
+describe("draft regeneration controls", () => {
+  const makeBaselineSection = (sectionKey: string, sectionTitle: string, sectionOrder: number, text: string) => ({
+    id: sectionOrder,
+    draftId: 21,
+    sectionKey,
+    sectionTitle,
+    sectionOrder,
+    sectionText: text,
+    reviewStatus: "reviewed",
+    authorNote: null,
+    lastEditedBy: 3,
+    approvedBy: null,
+    approvedAt: null,
+    createdAt: new Date("2026-10-01T10:00:00.000Z"),
+    updatedAt: new Date("2026-10-01T10:00:00.000Z"),
+    paragraphs: [
+      {
+        id: sectionOrder,
+        sectionId: sectionOrder,
+        paragraphOrder: 1,
+        paragraphText: text,
+        rationale: `Baseline rationale for ${sectionKey}`,
+        confidenceScore: "0.900",
+        reviewStatus: "reviewed",
+        editedBy: 3,
+        createdAt: new Date("2026-10-01T10:00:00.000Z"),
+        updatedAt: new Date("2026-10-01T10:00:00.000Z"),
+        annotations: [],
+      },
+    ],
+  });
+
+  const baselineDraft = {
+    id: 21,
+    caseId: 9,
+    versionNo: 4,
+    status: "judge_edited",
+    generationMode: "hybrid",
+    providerSettingId: 2,
+    generationPromptSnapshot: "previous prompt",
+    generatedByJobId: 12,
+    createdBy: 3,
+    approvedBy: null,
+    approvedAt: null,
+    createdAt: new Date("2026-10-01T10:00:00.000Z"),
+    updatedAt: new Date("2026-10-01T10:00:00.000Z"),
+    sections: [
+      makeBaselineSection("header", "Header", 1, "BASELINE HEADER"),
+      makeBaselineSection("facts", "Facts", 2, "BASELINE FACTS"),
+      makeBaselineSection("issues", "Issues", 3, "BASELINE ISSUES"),
+      makeBaselineSection("reasoning", "Reasoning", 4, "BASELINE REASONING"),
+      makeBaselineSection("operative_part", "Operative Part", 5, "BASELINE OPERATIVE"),
+    ],
+  } as any;
+
+  it("injects judge instructions, rewrite scope, and baseline version into the generation prompt", () => {
+    const prompt = buildCasePrompt(
+      {
+        case: {
+          caseNumber: "2026/44",
+          title: "Inheritance regeneration test",
+          jurisdictionCode: "GR",
+          courtLevel: "First Instance",
+          caseType: "Inheritance",
+          status: "drafting",
+          summary: "Test matter",
+          languageCode: "en",
+        },
+        parties: [],
+        documents: [],
+        latestDraft: baselineDraft,
+      } as any,
+      [] as any,
+      {
+        customInstructions: "Strengthen the legitimate-share analysis and answer the opposing argument.",
+        rewriteSections: ["reasoning"],
+        sourceDraft: baselineDraft,
+      },
+    );
+
+    expect(prompt.userPrompt).toContain("regeneration of draft version 4");
+    expect(prompt.userPrompt).toContain("Only the following sections are intended to be rewritten: reasoning");
+    expect(prompt.userPrompt).toContain("Strengthen the legitimate-share analysis");
+    expect(prompt.userPrompt).toContain("BASELINE REASONING");
+  });
+
+  it("preserves locked sections exactly while allowing selected sections to use the regenerated output", () => {
+    const generated = [
+      { sectionKey: "header", sectionTitle: "Header", sectionOrder: 1, sectionText: "NEW HEADER", paragraphs: [{ paragraphText: "NEW HEADER", rationale: null, confidenceScore: "0.5", annotations: [] }] },
+      { sectionKey: "facts", sectionTitle: "Facts", sectionOrder: 2, sectionText: "NEW FACTS", paragraphs: [{ paragraphText: "NEW FACTS", rationale: null, confidenceScore: "0.5", annotations: [] }] },
+      { sectionKey: "issues", sectionTitle: "Issues", sectionOrder: 3, sectionText: "NEW ISSUES", paragraphs: [{ paragraphText: "NEW ISSUES", rationale: null, confidenceScore: "0.5", annotations: [] }] },
+      { sectionKey: "reasoning", sectionTitle: "Reasoning", sectionOrder: 4, sectionText: "NEW REASONING", paragraphs: [{ paragraphText: "NEW REASONING", rationale: "new rationale", confidenceScore: "0.8", annotations: [] }] },
+      { sectionKey: "operative_part", sectionTitle: "Operative Part", sectionOrder: 5, sectionText: "NEW OPERATIVE", paragraphs: [{ paragraphText: "NEW OPERATIVE", rationale: null, confidenceScore: "0.5", annotations: [] }] },
+    ] as any;
+
+    const scoped = applyRegenerationScope(generated, baselineDraft, ["reasoning"]);
+
+    expect(scoped.find(section => section.sectionKey === "reasoning")?.sectionText).toBe("NEW REASONING");
+    expect(scoped.find(section => section.sectionKey === "header")?.sectionText).toBe("BASELINE HEADER");
+    expect(scoped.find(section => section.sectionKey === "facts")?.sectionText).toBe("BASELINE FACTS");
+    expect(scoped.find(section => section.sectionKey === "issues")?.sectionText).toBe("BASELINE ISSUES");
+    expect(scoped.find(section => section.sectionKey === "operative_part")?.sectionText).toBe("BASELINE OPERATIVE");
   });
 });

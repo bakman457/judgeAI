@@ -139,6 +139,16 @@ const defaultKnowledgeForm: {
   sourceReference: "",
 };
 
+type RegenerationSectionKey = "header" | "facts" | "issues" | "reasoning" | "operative_part";
+
+const REGENERATION_SECTIONS: RegenerationSectionKey[] = [
+  "header",
+  "facts",
+  "issues",
+  "reasoning",
+  "operative_part",
+];
+
 const defaultProviderForm: {
   id?: number;
   name: string;
@@ -484,6 +494,11 @@ export default function Home() {
   const [paragraphDrafts, setParagraphDrafts] = useState<Record<number, { paragraphText: string; rationale: string; confidenceScore: string; reviewStatus: "draft" | "reviewed" | "approved" }>>({});
   const [draftProgress, setDraftProgress] = useState(0);
   const [draftProgressElapsed, setDraftProgressElapsed] = useState(0);
+  const [regenerationInstructions, setRegenerationInstructions] = useState("");
+  const [regenerationSourceDraftId, setRegenerationSourceDraftId] = useState("");
+  const [regenerationSections, setRegenerationSections] = useState<Set<RegenerationSectionKey>>(
+    () => new Set(REGENERATION_SECTIONS),
+  );
   const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
   const [activeTimelineIndex, setActiveTimelineIndex] = useState(0);
   const [reviewProgress, setReviewProgress] = useState(0);
@@ -533,6 +548,9 @@ export default function Home() {
 
   useEffect(() => {
     setParagraphDrafts({});
+    setRegenerationInstructions("");
+    setRegenerationSourceDraftId("");
+    setRegenerationSections(new Set(REGENERATION_SECTIONS));
   }, [caseId]);
 
   const utils = trpc.useUtils();
@@ -1101,6 +1119,13 @@ export default function Home() {
   }, [caseReviewResult?.reviewSnapshotId]);
 
   const activeDraft = useMemo(() => workspaceQuery.data?.latestDraft ?? null, [workspaceQuery.data]);
+  const draftHistory = useMemo(() => workspaceQuery.data?.draftHistory ?? [], [workspaceQuery.data]);
+
+  useEffect(() => {
+    if (!activeDraft?.id) return;
+    setRegenerationSourceDraftId(String(activeDraft.id));
+  }, [activeDraft?.id]);
+
   const latestDraftText = useMemo(
     () => activeDraft?.sections?.map((section: any) => `${section.sectionTitle}\n${section.sectionText}`).join("\n\n") ?? "",
     [activeDraft],
@@ -2530,8 +2555,20 @@ export default function Home() {
               <Button variant="outline" size="sm" className="rounded-xl border-stone-300/80 bg-white/92 text-rose-700 hover:bg-rose-50 hover:text-rose-800 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(26,31,43,0.98)_0%,rgba(17,20,29,0.99)_100%)] dark:text-rose-400 dark:hover:text-rose-300" onClick={() => setDeleteConfirmCaseId(workspace.case.id)}>
                 <Trash2 className="mr-2 h-4 w-4" />{ui.cases.deleteAction}
               </Button>
-              <Button className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200" onClick={() => generateDraftMutation.mutate({ caseId })} disabled={isGeneratingDraft}>
-                {isGeneratingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}{ui.workspace.generateAction}
+              <Button
+                className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                onClick={() => {
+                  if (activeDraft) {
+                    setRegenerationSourceDraftId(String(activeDraft.id));
+                    setActiveTab("draft");
+                    return;
+                  }
+                  generateDraftMutation.mutate({ caseId });
+                }}
+                disabled={isGeneratingDraft}
+              >
+                {isGeneratingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+                {activeDraft ? ui.workspace.regenerateAction : ui.workspace.generateAction}
               </Button>
             </div>
           }
@@ -3068,7 +3105,12 @@ export default function Home() {
                           const reviewContext = unreviewedFindings.length
                             ? unreviewedFindings.map((f: any) => `[${(f.severity ?? "").toUpperCase()}] ${f.category ?? ""}: ${f.issue ?? ""}${f.explanation ? ` — ${f.explanation}` : ""}${f.recommendedAction ? ` (Action: ${f.recommendedAction})` : ""}`).join("\n")
                             : "Regenerate the draft incorporating all previous legal consistency review feedback.";
-                          generateDraftMutation.mutate({ caseId, reviewContext });
+                          setRegenerationInstructions(reviewContext);
+                          if (activeDraft?.id) {
+                            setRegenerationSourceDraftId(String(activeDraft.id));
+                          }
+                          setRegenerationSections(new Set(REGENERATION_SECTIONS));
+                          setActiveTab("draft");
                         }}
                         disabled={isGeneratingDraft}
                       >
@@ -3558,6 +3600,102 @@ export default function Home() {
                   <StatusPill>{translateToken(locale, activeDraft.status)}</StatusPill>
                   <StatusPill>{translateToken(locale, activeDraft.generationMode)}</StatusPill>
                 </div>
+
+                <div className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4 md:p-5 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(23,27,38,0.96)_0%,rgba(15,18,27,0.98)_100%)]">
+                  <div className="mb-4">
+                    <h3 className="text-base font-semibold text-stone-950 dark:text-stone-100">{ui.workspace.regenerateTitle}</h3>
+                    <p className="mt-1 text-sm leading-6 text-stone-600 dark:text-stone-300">{ui.workspace.regenerateDescription}</p>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(220px,0.4fr)]">
+                    <TextAreaField
+                      label={ui.workspace.regenerateInstructionsLabel}
+                      value={regenerationInstructions}
+                      onChange={setRegenerationInstructions}
+                      placeholder={ui.workspace.regenerateInstructionsPlaceholder}
+                    />
+                    <SelectField
+                      label={ui.workspace.regenerateBaselineLabel}
+                      value={regenerationSourceDraftId || String(activeDraft.id)}
+                      onChange={setRegenerationSourceDraftId}
+                      options={(draftHistory.length ? draftHistory : [activeDraft]).map((draft: any) => [
+                        String(draft.id),
+                        `${ui.workspace.version} ${draft.versionNo} · ${translateToken(locale, draft.status)}`,
+                      ] as [string, string])}
+                    />
+                  </div>
+
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{ui.workspace.regenerateSectionsLabel}</p>
+                    <p className="mt-1 text-xs leading-5 text-stone-500 dark:text-stone-400">{ui.workspace.regenerateSectionsHint}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {REGENERATION_SECTIONS.map(sectionKey => {
+                        const checked = regenerationSections.has(sectionKey);
+                        const label = ui.workspace.regenerateSectionOptions[sectionKey as keyof typeof ui.workspace.regenerateSectionOptions];
+                        return (
+                          <label
+                            key={sectionKey}
+                            className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${checked
+                              ? "border-stone-900 bg-stone-900 text-stone-50 dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
+                              : "border-stone-300 bg-white text-stone-700 hover:bg-stone-100 dark:border-stone-700 dark:bg-white/5 dark:text-stone-200 dark:hover:bg-white/10"}`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="sr-only"
+                              checked={checked}
+                              onChange={() =>
+                                setRegenerationSections(current => {
+                                  const next = new Set(current);
+                                  if (next.has(sectionKey)) {
+                                    if (next.size === 1) return next;
+                                    next.delete(sectionKey);
+                                  } else {
+                                    next.add(sectionKey);
+                                  }
+                                  return next;
+                                })
+                              }
+                            />
+                            {label}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <Button
+                      className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
+                      onClick={() =>
+                        generateDraftMutation.mutate({
+                          caseId,
+                          sourceDraftId: Number(regenerationSourceDraftId || activeDraft.id),
+                          customInstructions: regenerationInstructions.trim() || null,
+                          rewriteSections: Array.from(regenerationSections),
+                        })
+                      }
+                      disabled={isGeneratingDraft || regenerationSections.size === 0}
+                    >
+                      {isGeneratingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                      {ui.workspace.regenerateAction}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-xl border-stone-300/80 bg-white/92 text-stone-700 hover:bg-stone-100/95 hover:text-stone-950 dark:border-stone-700/80 dark:bg-white/5 dark:text-stone-100 dark:hover:bg-white/10"
+                      onClick={() => {
+                        setRegenerationInstructions("");
+                        setRegenerationSourceDraftId(String(activeDraft.id));
+                        setRegenerationSections(new Set(REGENERATION_SECTIONS));
+                      }}
+                      disabled={isGeneratingDraft}
+                    >
+                      {ui.workspace.regenerateReset}
+                    </Button>
+                    <span className="text-xs leading-5 text-stone-500 dark:text-stone-400">{ui.workspace.regenerateHistoryHint}</span>
+                  </div>
+                </div>
+
                 {activeDraft.sections?.map((section: any) => (
                   <div key={section.id} className="rounded-[1.5rem] border border-stone-200 bg-stone-50/80 p-4 md:p-5 dark:border-stone-700/80 dark:bg-[linear-gradient(180deg,rgba(23,27,38,0.96)_0%,rgba(15,18,27,0.98)_100%)]">
                     <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
