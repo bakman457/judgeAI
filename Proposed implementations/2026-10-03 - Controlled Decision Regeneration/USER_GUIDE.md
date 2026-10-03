@@ -50,7 +50,33 @@ Examples:
 
 Be concrete. State both the legal issue and the desired drafting change.
 
-### Step 3 — Select sections the AI may rewrite
+### Step 3 — Attach reference files (optional)
+
+You may attach files that Judge AI should consider during this regeneration.
+
+Supported examples include PDF, DOCX, TXT, Markdown, HTML, JSON, and common image formats.
+
+Limits:
+
+- up to 8 files;
+- maximum 25 MB per file;
+- maximum 50 MB total.
+
+Each file has a **How the AI should use this file** setting:
+
+- **Style** — use the document as a writing-style reference. Judge AI may mirror high-level tone, sentence rhythm, terminology preferences, and drafting conventions.
+- **Structure** — use the document as an organizational/layout reference without importing its facts.
+- **Reference** — consider the content as supplementary context, but factual or legal propositions still need support from the permanent case record or legal knowledge base.
+
+You can also add an optional instruction for each file.
+
+Example:
+
+> Follow the formal tone and sentence structure of this judgment, but do not copy its factual content.
+
+These files are temporary. They are used for the current regeneration request and are not automatically added as permanent case evidence.
+
+### Step 4 — Select sections the AI may rewrite
 
 Available sections:
 
@@ -70,7 +96,7 @@ If you select only **Reasoning**, Judge AI may create a new Reasoning section, b
 
 At least one section must remain selected.
 
-### Step 4 — Regenerate
+### Step 5 — Regenerate
 
 Click **Regenerate as new version**.
 
@@ -108,7 +134,8 @@ Click **Reset controls** to:
 
 - clear the additional instructions;
 - restore the latest draft as the baseline;
-- allow all five sections to be rewritten.
+- allow all five sections to be rewritten;
+- remove the temporary regeneration attachments.
 
 ## Important behavior
 
@@ -116,4 +143,6 @@ Click **Reset controls** to:
 - Previous versions are not overwritten.
 - Locked sections are enforced by Judge AI's application logic.
 - The AI is still required to respect the case evidence, applicable law, and source-safety rules.
+- A Style attachment guides writing style only; it does not become evidence.
+- Uploaded document contents cannot override Judge AI's system or judge instructions simply by containing commands inside the file.
 - Final judicial review and approval remain the responsibility of the judge.
