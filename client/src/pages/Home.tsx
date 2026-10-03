@@ -150,6 +150,7 @@ type RegenerationAttachmentDraft = {
 
 const MAX_REGENERATION_ATTACHMENT_FILES = 8;
 const MAX_REGENERATION_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+const MAX_REGENERATION_ATTACHMENT_TOTAL_BYTES = 50 * 1024 * 1024;
 
 const REGENERATION_SECTIONS: RegenerationSectionKey[] = [
   "header",
@@ -3673,6 +3674,16 @@ export default function Home() {
                           const uniqueSelected = selected.filter(
                             file => !existing.has(`${file.name}|${file.size}|${file.lastModified}`),
                           );
+                          const currentTotalBytes = regenerationAttachments.reduce(
+                            (sum, item) => sum + item.file.size,
+                            0,
+                          );
+                          const selectedTotalBytes = uniqueSelected.reduce((sum, file) => sum + file.size, 0);
+                          if (currentTotalBytes + selectedTotalBytes > MAX_REGENERATION_ATTACHMENT_TOTAL_BYTES) {
+                            toast.error(ui.workspace.regenerateAttachmentTotalLimit);
+                            event.currentTarget.value = "";
+                            return;
+                          }
                           const availableSlots = Math.max(
                             0,
                             MAX_REGENERATION_ATTACHMENT_FILES - regenerationAttachments.length,
