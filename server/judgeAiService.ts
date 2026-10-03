@@ -60,6 +60,19 @@ import { ENV } from "./_core/env";
 import { storageGet, storageGetBuffer, storagePut } from "./storage";
 import JSZip from "jszip";
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "../shared/const";
+import {
+  buildMemoryPrompt,
+  getRelevantMemories,
+  getUserMemoryStats,
+  listUserMemories,
+  listUserMemoryEvents,
+  markMemoriesUsed,
+  recordMemorySignal,
+  setUserMemoryStatus,
+  type MemoryCategory,
+  type MemoryScope,
+  type MemoryStatus,
+} from "./memoryService";
 
 type ProviderType = "openai" | "azure_openai" | "custom_openai_compatible" | "alibaba_cloud" | "kimi" | "deepseek";
 
@@ -1550,7 +1563,7 @@ export function validateAndNormalizeDraftOutput(output: DraftModelOutput) {
 export function buildCasePrompt(
   workspace: NonNullable<Awaited<ReturnType<typeof getCaseWorkspace>>>,
   knowledge: Awaited<ReturnType<typeof listKnowledgeDocuments>>,
-  options: { compact?: boolean; styleProfile?: Record<string, unknown> | null; reviewContext?: string | null } = {},
+  options: { compact?: boolean; styleProfile?: Record<string, unknown> | null; reviewContext?: string | null; memoryPrompt?: string | null } = {},
 ) {
   const caseDocumentLimit = options.compact ? 5 : Number.POSITIVE_INFINITY;
   const caseDocumentTextLimit = options.compact ? 900 : 3_000;
@@ -1645,6 +1658,8 @@ export function buildCasePrompt(
     SOURCE_SAFETY_RULE,
     languageInstruction,
     styleInstructions.length > 0 ? `Style guidance (subordinate to legal accuracy): ${styleInstructions.join(" ")}` : null,
+    options.memoryPrompt ? "Apply the following long-term judge memory only when relevant. It is subordinate to current case evidence, applicable law, and the judge's current explicit instruction." : null,
+    options.memoryPrompt || null,
   ].filter(Boolean).join(" ");
 
   const userPrompt = [
@@ -2731,13 +2746,40 @@ export async function generateStructuredDraft(input: {
     // Best-effort style profile loading — do not fail draft generation if profile loading fails
   }
 
+  let relevantMemories: Awaited<ReturnType<typeof getRelevantMemories>> = [];
+  try {
+    relevantMemories = await getRelevantMemories({
+      userId: input.userId,
+      caseId: input.caseId,
+      caseType: workspace.case.caseType,
+      limit: 16,
+    });
+  } catch (error) {
+    console.warn("[Memory] Failed to load relevant memories; continuing without memory:", error);
+  }
+  const memoryPrompt = buildMemoryPrompt(relevantMemories);
+
+  if (input.reviewContext?.trim()) {
+    void recordMemorySignal({
+      userId: input.userId,
+      caseId: input.caseId,
+      caseType: workspace.case.caseType,
+      eventType: "draft.review_context",
+      rawText: input.reviewContext.trim(),
+      scope: "case",
+      category: "review_feedback",
+      confidence: 0.85,
+      metadata: { source: "draft_generation" },
+    }).catch(error => console.warn("[Memory] Failed to capture review context:", error));
+  }
+
   const job = await createProcessingJob({
     jobType: "draft_generation",
     targetEntityType: "draft",
     targetEntityId: input.caseId,
     caseId: input.caseId,
     status: "running",
-    payloadJson: { providerId: input.providerId ?? null, profileId: input.profileId ?? null, styleActive: Boolean(styleProfile) },
+    payloadJson: { providerId: input.providerId ?? null, profileId: input.profileId ?? null, styleActive: Boolean(styleProfile), memoryItems: relevantMemories.map(item => item.id) },
     resultJson: { stage: "preparing", message: "Preparing case workspace and legal context..." },
     createdBy: input.userId,
   });
@@ -2754,7 +2796,7 @@ export async function generateStructuredDraft(input: {
       await updateProcessingJob(job.id, {
         resultJson: { stage: "analyzing", message: "Analyzing case documents and legal principles..." },
       });
-      let prompt = buildCasePrompt(workspace, knowledge, { styleProfile, reviewContext: input.reviewContext });
+      let prompt = buildCasePrompt(workspace, knowledge, { styleProfile, reviewContext: input.reviewContext, memoryPrompt });
       let providerResult;
       await updateProcessingJob(job.id, {
         resultJson: { stage: "generating", message: "Generating structured decision draft..." },
@@ -2807,7 +2849,7 @@ export async function generateStructuredDraft(input: {
         await updateProcessingJob(job.id, {
           resultJson: { stage: "retrying", message: "Retrying with compact context due to provider output issue..." },
         });
-        prompt = buildCasePrompt(workspace, knowledge, { compact: true, styleProfile, reviewContext: input.reviewContext });
+        prompt = buildCasePrompt(workspace, knowledge, { compact: true, styleProfile, reviewContext: input.reviewContext, memoryPrompt });
         providerResult = await invokeConfiguredModel({
           providerId: input.providerId,
           systemPrompt: prompt.systemPrompt,
@@ -2833,6 +2875,11 @@ export async function generateStructuredDraft(input: {
         generationPromptSnapshot: prompt.userPrompt,
         sections,
       });
+
+      if (relevantMemories.length) {
+        void markMemoriesUsed(relevantMemories.map(item => item.id))
+          .catch(error => console.warn("[Memory] Failed to update memory usage counters:", error));
+      }
 
       await updateProcessingJob(job.id, {
         status: "completed",
@@ -2888,6 +2935,19 @@ export async function updateDraftParagraphWithAudit(input: {
     annotations: input.annotations,
   });
 
+  if (input.paragraphText?.trim()) {
+    void recordMemorySignal({
+      userId: input.userId,
+      caseId: input.caseId,
+      eventType: "draft.paragraph_edit",
+      rawText: input.paragraphText.trim(),
+      scope: "case",
+      category: "edit_example",
+      confidence: input.reviewStatus === "approved" ? 0.95 : 0.8,
+      metadata: { paragraphId: input.paragraphId, reviewStatus: input.reviewStatus ?? null },
+    }).catch(error => console.warn("[Memory] Failed to capture paragraph edit:", error));
+  }
+
   await logCaseActivity({
     caseId: input.caseId,
     actorUserId: input.userId,
@@ -2942,6 +3002,19 @@ export async function saveSectionAuthorNote(input: {
     authorNote: input.authorNote,
     lastEditedBy: input.userId,
   });
+  if (input.authorNote?.trim()) {
+    void recordMemorySignal({
+      userId: input.userId,
+      caseId: input.caseId,
+      eventType: "draft.section_note",
+      rawText: input.authorNote.trim(),
+      scope: "case",
+      category: "author_note",
+      confidence: 0.85,
+      metadata: { sectionId: input.sectionId },
+    }).catch(error => console.warn("[Memory] Failed to capture section note:", error));
+  }
+
   await logCaseActivity({
     caseId: input.caseId,
     actorUserId: input.userId,
@@ -4084,7 +4157,7 @@ export async function saveFindingResolution(input: {
   note: string | null;
   userId: number;
 }) {
-  await assertSnapshotBelongsToCase(input.caseId, input.reviewSnapshotId);
+  const snapshot = await assertSnapshotBelongsToCase(input.caseId, input.reviewSnapshotId);
   const saved = await upsertFindingResolution({
     reviewSnapshotId: input.reviewSnapshotId,
     findingIndex: input.findingIndex,
@@ -4092,6 +4165,36 @@ export async function saveFindingResolution(input: {
     note: input.note?.trim() || null,
     resolvedBy: input.userId,
   });
+  const findings = ((snapshot.resultJson as Record<string, unknown> | null)?.findings ?? []) as Array<{
+    issue?: string;
+    explanation?: string;
+    recommendedAction?: string;
+  }>;
+  const finding = findings[input.findingIndex];
+  const feedbackText = [
+    input.status === "accepted" ? "Accepted review finding" : input.status === "addressed" ? "Addressed review finding" : "Deferred review finding",
+    finding?.issue,
+    finding?.explanation,
+    finding?.recommendedAction,
+    input.note,
+  ].filter(Boolean).join(": ");
+  if (feedbackText.trim()) {
+    void recordMemorySignal({
+      userId: input.userId,
+      caseId: input.caseId,
+      eventType: "review.finding_resolution",
+      rawText: feedbackText,
+      scope: "case",
+      category: "review_feedback",
+      confidence: input.status === "accepted" ? 0.95 : 0.8,
+      metadata: {
+        reviewSnapshotId: input.reviewSnapshotId,
+        findingIndex: input.findingIndex,
+        status: input.status,
+      },
+    }).catch(error => console.warn("[Memory] Failed to capture finding resolution:", error));
+  }
+
   await logCaseActivity({
     caseId: input.caseId,
     actorUserId: input.userId,
@@ -4211,6 +4314,51 @@ export async function explainFinding(input: {
   });
 
   return { explanation };
+}
+
+export async function addPermanentMemory(input: {
+  userId: number;
+  content: string;
+  scope: MemoryScope;
+  category?: MemoryCategory;
+  caseId?: number | null;
+  caseType?: string | null;
+}) {
+  return recordMemorySignal({
+    userId: input.userId,
+    caseId: input.caseId ?? null,
+    caseType: input.caseType ?? null,
+    eventType: "memory.manual",
+    rawText: input.content,
+    scope: input.scope,
+    category: input.category ?? "manual",
+    confidence: 1,
+    metadata: { manuallyAdded: true },
+  });
+}
+
+export async function listPermanentMemories(input: {
+  userId: number;
+  status?: MemoryStatus | "all";
+  limit?: number;
+}) {
+  return listUserMemories(input);
+}
+
+export async function listPermanentMemoryEvents(input: { userId: number; limit?: number }) {
+  return listUserMemoryEvents(input);
+}
+
+export async function updatePermanentMemoryStatus(input: {
+  userId: number;
+  memoryId: number;
+  status: MemoryStatus;
+}) {
+  return setUserMemoryStatus(input);
+}
+
+export async function getPermanentMemoryStats(userId: number) {
+  return getUserMemoryStats(userId);
 }
 
 export async function runSearch(caseId: number, query: string) {
