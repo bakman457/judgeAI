@@ -800,6 +800,7 @@ async function runWithTimeout<T>(work: Promise<T>, ms: number, message: string):
 
 const MAX_REGENERATION_REFERENCE_FILES = 8;
 const MAX_REGENERATION_REFERENCE_BYTES = 25 * 1024 * 1024;
+const MAX_REGENERATION_REFERENCE_TOTAL_BYTES = 50 * 1024 * 1024;
 const MAX_REGENERATION_REFERENCE_CHARS_PER_FILE = 20_000;
 const MAX_REGENERATION_REFERENCE_TOTAL_CHARS = 60_000;
 
@@ -816,6 +817,7 @@ async function extractRegenerationReferenceFiles(
 
   const results: RegenerationReferenceContext[] = [];
   let remainingChars = MAX_REGENERATION_REFERENCE_TOTAL_CHARS;
+  let totalBytes = 0;
 
   for (const file of files) {
     const normalizedMimeType = normalizeUploadMimeType(file.fileName, file.mimeType);
@@ -825,6 +827,13 @@ async function extractRegenerationReferenceFiles(
       throw new TRPCError({
         code: "BAD_REQUEST",
         message: `Regeneration reference "${file.fileName}" exceeds the 25 MB per-file limit`,
+      });
+    }
+    totalBytes += buffer.length;
+    if (totalBytes > MAX_REGENERATION_REFERENCE_TOTAL_BYTES) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Regeneration reference files exceed the 50 MB total attachment limit",
       });
     }
 
@@ -1773,13 +1782,16 @@ export function buildCasePrompt(
               purpose: reference.purpose,
               mime: reference.mimeType,
               sha256: reference.sha256,
-              note: reference.note ?? undefined,
             },
             reference.extractedText,
           ),
         )
         .join("\n\n")
     : null;
+  const regenerationReferenceGuidance = options.regenerationReferences
+    ?.filter(reference => Boolean(reference.note?.trim()))
+    .map(reference => `- ${reference.fileName} (purpose=${reference.purpose}): ${reference.note!.trim()}`)
+    .join("\n") || null;
 
   const userPrompt = [
     "Draft a judicial decision using the provided case file and permanent knowledge base.",
@@ -1788,6 +1800,8 @@ export function buildCasePrompt(
     rewriteSections ? `Only the following sections are intended to be rewritten: ${rewriteSections.join(", ")}. Other sections are locked and will be preserved by the application.` : null,
     options.customInstructions?.trim() ? "Judge-provided regeneration instructions (follow them unless they conflict with law, evidence, or the required output schema):" : null,
     options.customInstructions?.trim() || null,
+    regenerationReferenceGuidance ? "Judge-provided instructions for the attached reference files:" : null,
+    regenerationReferenceGuidance,
     regenerationReferenceText ? "Temporary regeneration reference files are included below. Respect each file's purpose attribute. For purpose=style, mirror high-level tone, sentence rhythm, terminology preferences, and drafting conventions without copying distinctive passages. For purpose=structure, follow organization and presentation patterns without importing facts. For purpose=reference, consider the content as supplementary context only and verify any factual or legal proposition against the case record or permanent knowledge base before relying on it." : null,
     regenerationReferenceText,
     options.reviewContext ? "A previous legal consistency review identified the following issues that must be addressed in this new draft. Ensure every listed issue is properly resolved in the generated decision." : null,
