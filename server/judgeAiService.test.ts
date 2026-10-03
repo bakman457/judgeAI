@@ -406,7 +406,11 @@ describe("draft regeneration controls", () => {
     expect(prompt.userPrompt).toContain('<regeneration_reference id="1"');
     expect(prompt.userPrompt).toContain('file="example-judgment.docx"');
     expect(prompt.userPrompt).toContain('purpose="style"');
+    expect(prompt.userPrompt).toContain("Judge-provided instructions for the attached reference files:");
     expect(prompt.userPrompt).toContain("Match the formal tone and sentence rhythm.");
+    expect(prompt.userPrompt).not.toContain('note="Match the formal tone and sentence rhythm."');
+    expect(prompt.userPrompt.indexOf("Judge-provided instructions for the attached reference files:"))
+      .toBeLessThan(prompt.userPrompt.indexOf('<regeneration_reference id="1"'));
     expect(prompt.userPrompt).toContain("without copying distinctive passages");
     expect(prompt.userPrompt).toContain('purpose="structure"');
     expect(prompt.userPrompt).toContain("without importing facts");
