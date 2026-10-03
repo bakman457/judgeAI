@@ -34,6 +34,7 @@ import {
   BookCopy,
   BookOpen,
   Bot,
+  Brain,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -93,6 +94,7 @@ function getNavGroups(locale: "en" | "el") {
         { icon: Gavel, label: copy.cases, path: "/cases", roles: allRoles },
         { icon: BookCopy, label: copy.knowledge, path: "/knowledge", roles: allRoles },
         { icon: PenTool, label: copy.judgeStyle, path: "/judge-style", roles: allRoles },
+        { icon: Brain, label: locale === "el" ? "Μόνιμη Μνήμη" : "Permanent Memory", path: "/memory", roles: allRoles },
       ],
     },
     {
