@@ -357,6 +357,61 @@ describe("draft regeneration controls", () => {
     expect(prompt.userPrompt).toContain("BASELINE REASONING");
   });
 
+  it("includes temporary style/reference attachments with explicit purpose and safety boundaries", () => {
+    const prompt = buildCasePrompt(
+      {
+        case: {
+          caseNumber: "2026/45",
+          title: "Style-reference regeneration",
+          jurisdictionCode: "GR",
+          courtLevel: "First Instance",
+          caseType: "Inheritance",
+          status: "drafting",
+          summary: "Test matter",
+          languageCode: "en",
+        },
+        parties: [],
+        documents: [],
+        latestDraft: baselineDraft,
+      } as any,
+      [] as any,
+      {
+        customInstructions: "Follow the drafting style of the attached example.",
+        rewriteSections: ["reasoning"],
+        sourceDraft: baselineDraft,
+        regenerationReferences: [
+          {
+            fileName: "example-judgment.docx",
+            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            sizeBytes: 2048,
+            purpose: "style",
+            note: "Match the formal tone and sentence rhythm.",
+            sha256: "abc123",
+            extractedText: "Formal, restrained judicial prose with tightly structured reasoning.",
+          },
+          {
+            fileName: "outline.pdf",
+            mimeType: "application/pdf",
+            sizeBytes: 4096,
+            purpose: "structure",
+            note: null,
+            sha256: "def456",
+            extractedText: "Header, facts, issues, analysis, operative part.",
+          },
+        ],
+      },
+    );
+
+    expect(prompt.systemPrompt).toContain("purpose=style may influence writing style only");
+    expect(prompt.userPrompt).toContain('<regeneration_reference id="1"');
+    expect(prompt.userPrompt).toContain('file="example-judgment.docx"');
+    expect(prompt.userPrompt).toContain('purpose="style"');
+    expect(prompt.userPrompt).toContain("Match the formal tone and sentence rhythm.");
+    expect(prompt.userPrompt).toContain("without copying distinctive passages");
+    expect(prompt.userPrompt).toContain('purpose="structure"');
+    expect(prompt.userPrompt).toContain("without importing facts");
+  });
+
   it("preserves locked sections exactly while allowing selected sections to use the regenerated output", () => {
     const generated = [
       { sectionKey: "header", sectionTitle: "Header", sectionOrder: 1, sectionText: "NEW HEADER", paragraphs: [{ paragraphText: "NEW HEADER", rationale: null, confidenceScore: "0.5", annotations: [] }] },
