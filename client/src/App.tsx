@@ -9,6 +9,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 const Home = lazy(() => import("./pages/Home"));
 const JudgeStyle = lazy(() => import("./pages/JudgeStyle"));
+const Memory = lazy(() => import("./pages/Memory"));
 const Logs = lazy(() => import("./pages/Logs"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
@@ -31,6 +32,7 @@ function Router() {
         <Route path="/help" component={Home} />
         <Route path="/admin" component={Home} />
         <Route path="/judge-style" component={JudgeStyle} />
+        <Route path="/memory" component={Memory} />
         <Route path="/logs" component={Logs} />
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
