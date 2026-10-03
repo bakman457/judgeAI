@@ -140,6 +140,16 @@ const defaultKnowledgeForm: {
 };
 
 type RegenerationSectionKey = "header" | "facts" | "issues" | "reasoning" | "operative_part";
+type RegenerationReferencePurpose = "style" | "reference" | "structure";
+type RegenerationAttachmentDraft = {
+  id: string;
+  file: File;
+  purpose: RegenerationReferencePurpose;
+  note: string;
+};
+
+const MAX_REGENERATION_ATTACHMENT_FILES = 8;
+const MAX_REGENERATION_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 
 const REGENERATION_SECTIONS: RegenerationSectionKey[] = [
   "header",
@@ -499,6 +509,8 @@ export default function Home() {
   const [regenerationSections, setRegenerationSections] = useState<Set<RegenerationSectionKey>>(
     () => new Set(REGENERATION_SECTIONS),
   );
+  const [regenerationAttachments, setRegenerationAttachments] = useState<RegenerationAttachmentDraft[]>([]);
+  const [isPreparingRegenerationAttachments, setIsPreparingRegenerationAttachments] = useState(false);
   const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
   const [activeTimelineIndex, setActiveTimelineIndex] = useState(0);
   const [reviewProgress, setReviewProgress] = useState(0);
@@ -551,6 +563,8 @@ export default function Home() {
     setRegenerationInstructions("");
     setRegenerationSourceDraftId("");
     setRegenerationSections(new Set(REGENERATION_SECTIONS));
+    setRegenerationAttachments([]);
+    setIsPreparingRegenerationAttachments(false);
   }, [caseId]);
 
   const utils = trpc.useUtils();
@@ -621,6 +635,7 @@ export default function Home() {
       if (stage) {
         const stageProgress: Record<string, number> = {
           preparing: 5,
+          analyzing_attachments: 10,
           analyzing: 20,
           generating: 50,
           validating: 75,
@@ -3625,6 +3640,121 @@ export default function Home() {
                     />
                   </div>
 
+                  <div className="mt-4 rounded-[1.25rem] border border-stone-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/[0.04]">
+                    <div className="flex flex-col gap-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{ui.workspace.regenerateAttachmentsLabel}</p>
+                      <p className="text-xs leading-5 text-stone-500 dark:text-stone-400">{ui.workspace.regenerateAttachmentsHint}</p>
+                    </div>
+                    <label className="mt-3 block rounded-xl border border-dashed border-stone-300/90 bg-stone-50 px-4 py-4 dark:border-stone-700/80 dark:bg-white/[0.03]">
+                      <div className="flex items-center gap-2 text-sm font-medium text-stone-700 dark:text-stone-200">
+                        <FilePlus2 className="h-4 w-4" />
+                        {ui.workspace.regenerateAttachAction}
+                      </div>
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf,.docx,.txt,.md,.html,.json,.jpg,.jpeg,.png,.tif,.tiff,.webp,.bmp,.gif"
+                        className="mt-3 block w-full text-sm text-stone-600 file:mr-4 file:rounded-lg file:border-0 file:bg-stone-900 file:px-3.5 file:py-2.5 file:text-sm file:font-medium file:text-stone-50 dark:text-stone-300 dark:file:bg-stone-100 dark:file:text-stone-900"
+                        onChange={event => {
+                          const selected = Array.from(event.target.files ?? []);
+                          if (!selected.length) return;
+
+                          const oversized = selected.find(file => file.size > MAX_REGENERATION_ATTACHMENT_BYTES);
+                          if (oversized) {
+                            toast.error(ui.workspace.regenerateAttachmentTooLarge.replace("{name}", oversized.name));
+                            event.currentTarget.value = "";
+                            return;
+                          }
+
+                          setRegenerationAttachments(current => {
+                            const existing = new Set(current.map(item => `${item.file.name}|${item.file.size}|${item.file.lastModified}`));
+                            const availableSlots = Math.max(0, MAX_REGENERATION_ATTACHMENT_FILES - current.length);
+                            const additions = selected
+                              .filter(file => !existing.has(`${file.name}|${file.size}|${file.lastModified}`))
+                              .slice(0, availableSlots)
+                              .map((file, index) => ({
+                                id: `${file.name}-${file.size}-${file.lastModified}-${current.length + index}`,
+                                file,
+                                purpose: "style" as RegenerationReferencePurpose,
+                                note: "",
+                              }));
+                            if (selected.length > availableSlots) {
+                              toast.error(ui.workspace.regenerateAttachmentLimit);
+                            }
+                            return [...current, ...additions];
+                          });
+                          event.currentTarget.value = "";
+                        }}
+                      />
+                    </label>
+
+                    {regenerationAttachments.length ? (
+                      <div className="mt-3 space-y-3">
+                        {regenerationAttachments.map(item => (
+                          <div key={item.id} className="rounded-xl border border-stone-200 bg-white p-3 dark:border-white/10 dark:bg-white/[0.04]">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-semibold text-stone-900 dark:text-stone-100">{item.file.name}</p>
+                                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{(item.file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 rounded-lg text-stone-500 hover:text-rose-700 dark:text-stone-400 dark:hover:text-rose-300"
+                                onClick={() => setRegenerationAttachments(current => current.filter(candidate => candidate.id !== item.id))}
+                                disabled={isGeneratingDraft || isPreparingRegenerationAttachments}
+                              >
+                                <X className="h-4 w-4" />
+                                <span className="sr-only">{ui.workspace.regenerateAttachmentRemove}</span>
+                              </Button>
+                            </div>
+                            <div className="mt-3 grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
+                              <label className="block space-y-2">
+                                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{ui.workspace.regenerateAttachmentPurposeLabel}</span>
+                                <select
+                                  value={item.purpose}
+                                  onChange={event =>
+                                    setRegenerationAttachments(current =>
+                                      current.map(candidate =>
+                                        candidate.id === item.id
+                                          ? { ...candidate, purpose: event.target.value as RegenerationReferencePurpose }
+                                          : candidate,
+                                      ),
+                                    )
+                                  }
+                                  className="h-11 w-full rounded-lg border border-stone-300/80 bg-white px-3 text-sm text-stone-900 outline-none focus:border-stone-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-100"
+                                >
+                                  <option value="style">{ui.workspace.regenerateAttachmentPurposes.style}</option>
+                                  <option value="reference">{ui.workspace.regenerateAttachmentPurposes.reference}</option>
+                                  <option value="structure">{ui.workspace.regenerateAttachmentPurposes.structure}</option>
+                                </select>
+                              </label>
+                              <label className="block space-y-2">
+                                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{ui.workspace.regenerateAttachmentNoteLabel}</span>
+                                <input
+                                  value={item.note}
+                                  onChange={event =>
+                                    setRegenerationAttachments(current =>
+                                      current.map(candidate =>
+                                        candidate.id === item.id
+                                          ? { ...candidate, note: event.target.value }
+                                          : candidate,
+                                      ),
+                                    )
+                                  }
+                                  maxLength={1000}
+                                  placeholder={ui.workspace.regenerateAttachmentNotePlaceholder}
+                                  className="h-11 w-full rounded-lg border border-stone-300/80 bg-white px-3 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-stone-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-stone-100 dark:placeholder:text-stone-500"
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
                   <div className="mt-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500 dark:text-stone-300">{ui.workspace.regenerateSectionsLabel}</p>
                     <p className="mt-1 text-xs leading-5 text-stone-500 dark:text-stone-400">{ui.workspace.regenerateSectionsHint}</p>
@@ -3666,17 +3796,35 @@ export default function Home() {
                   <div className="mt-4 flex flex-wrap items-center gap-3">
                     <Button
                       className="rounded-xl bg-stone-900 text-stone-50 hover:bg-stone-800 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-200"
-                      onClick={() =>
-                        generateDraftMutation.mutate({
-                          caseId,
-                          sourceDraftId: Number(regenerationSourceDraftId || activeDraft.id),
-                          customInstructions: regenerationInstructions.trim() || null,
-                          rewriteSections: Array.from(regenerationSections),
-                        })
-                      }
-                      disabled={isGeneratingDraft || regenerationSections.size === 0}
+                      onClick={async () => {
+                        setIsPreparingRegenerationAttachments(true);
+                        try {
+                          const referenceAttachments = await Promise.all(
+                            regenerationAttachments.map(async item => ({
+                              fileName: item.file.name,
+                              mimeType: item.file.type || "application/octet-stream",
+                              base64Content: await fileToBase64(item.file),
+                              sizeBytes: item.file.size,
+                              purpose: item.purpose,
+                              note: item.note.trim() || null,
+                            })),
+                          );
+                          generateDraftMutation.mutate({
+                            caseId,
+                            sourceDraftId: Number(regenerationSourceDraftId || activeDraft.id),
+                            customInstructions: regenerationInstructions.trim() || null,
+                            rewriteSections: Array.from(regenerationSections),
+                            referenceAttachments,
+                          });
+                        } catch (error) {
+                          toast.error(error instanceof Error ? error.message : ui.workspace.regenerateAttachmentReadError);
+                        } finally {
+                          setIsPreparingRegenerationAttachments(false);
+                        }
+                      }}
+                      disabled={isGeneratingDraft || isPreparingRegenerationAttachments || regenerationSections.size === 0}
                     >
-                      {isGeneratingDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+                      {isGeneratingDraft || isPreparingRegenerationAttachments ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
                       {ui.workspace.regenerateAction}
                     </Button>
                     <Button
@@ -3687,6 +3835,7 @@ export default function Home() {
                         setRegenerationInstructions("");
                         setRegenerationSourceDraftId(String(activeDraft.id));
                         setRegenerationSections(new Set(REGENERATION_SECTIONS));
+                        setRegenerationAttachments([]);
                       }}
                       disabled={isGeneratingDraft}
                     >
